@@ -1,0 +1,2884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Python - Bright</title>
+
+  <!-- Blockly v9.3.3 -->
+  <script src="https://unpkg.com/blockly@9.3.3/blockly.min.js"></script>
+  <script src="https://unpkg.com/blockly@9.3.3/python_compressed.js"></script>
+  <script src="https://unpkg.com/blockly@9.3.3/blocks_compressed.js"></script>
+  <script src="https://unpkg.com/blockly@9.3.3/msg/en.js"></script>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bright-mode">
+
+<div class="main-layout">
+  <!-- Bagian kiri: Blockly workspace -->
+  <div class="workspace-section">
+    <div class="workspace-header">
+      <i class="fas fa-puzzle-piece"></i>
+      <span>Blok Program</span>
+      <div class="page-info">
+        <span>Halaman</span>
+        <span id="pageDisplay">1 / 15</span>
+        <button id="prevPage"><i class="fas fa-chevron-left"></i></button>
+        <button id="nextPage"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+    <div id="blocklyDiv"></div>
+  </div>
+
+  <!-- Bagian kanan: Python panel -->
+  <div class="python-panel">
+    <div class="panel-header">
+      <i class="fab fa-python"></i>
+      <span>Python Editor</span>
+    </div>
+    
+    <div class="mblock-tabs">
+      <div class="mblock-tab active" onclick="switchMblockTab('function')" id="tabFunction">
+        <i class="fas fa-cog"></i> Function
+      </div>
+      <div class="mblock-tab" onclick="switchMblockTab('python')" id="tabPython">
+        <i class="fab fa-python"></i> Python
+      </div>
+    </div>
+    
+    <!-- Mode Selector -->
+    <div class="mode-selector">
+      <span class="mode-label"><i class="fas fa-sliders-h"></i> Mode:</span>
+      <div class="mode-toggle" id="modeToggle">
+        <div class="mode-slider" id="modeSlider"></div>
+        <div class="mode-option block-mode" onclick="setMode('block')">
+          <i class="fas fa-cubes mode-icon"></i> Block
+        </div>
+        <div class="mode-option manual-mode" onclick="setMode('manual')">
+          <i class="fas fa-pen mode-icon"></i> Manual
+        </div>
+      </div>
+      <button class="sync-btn" id="syncBtn" onclick="syncFromBlocks()" title="Sync dari Block">
+        <i class="fas fa-sync-alt"></i> Sync
+      </button>
+    </div>
+    
+    <div class="code-output-area" id="codeOutputArea">
+      <!-- Area untuk tab Function -->
+      <div id="functionArea" style="display: flex; flex-direction: column; height: 100%;">
+        <!-- Search bar -->
+        <div class="function-search">
+          <input type="text" id="functionSearch" placeholder="Cari topik...">
+        </div>
+        
+        <!-- Category filters (LOC filter) -->
+        <div class="function-categories">
+          <span class="function-category active" data-category="all">Semua Topik</span>
+          <span class="function-category" data-category="loc1-4">LOC 1-4</span>
+          <span class="function-category" data-category="loc5-8">LOC 5-8</span>
+          <span class="function-category" data-category="loc9-12">LOC 9-12</span>
+        </div>
+        
+        <!-- Topic list -->
+        <div class="function-list" id="functionList"></div>
+      </div>
+      
+      <!-- Area untuk tab Python (split panel) -->
+      <div id="pythonSplitArea" style="display: none; height: 100%;" class="split-panel">
+        <!-- Code Panel -->
+        <div class="code-panel">
+          <div class="panel-label">
+            <i class="fas fa-code"></i> Kode Python
+            <span id="modeIndicator" class="source-indicator blocks">Mode: Block</span>
+            <span class="run-indicator" id="codeLineCount">0 baris</span>
+            <button class="clear-btn" onclick="clearOutput()">
+              <i class="fas fa-trash"></i> Clear
+            </button>
+          </div>
+          <div id="codeArea" contenteditable="true" spellcheck="false">Memuat workspace...</div>
+        </div>
+        
+        <!-- Output Panel -->
+        <div class="output-panel">
+          <div class="panel-label">
+            <i class="fas fa-terminal"></i> Output
+            <span class="stop-indicator" id="executionStatus"></span>
+            <span class="run-indicator" id="executionTime"></span>
+          </div>
+          <div id="outputArea"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="action-buttons">
+      <button class="mblock-btn" onclick="executeCode()" id="executeBtn" disabled>
+        <i class="fas fa-play"></i> Jalankan
+      </button>
+      <button class="mblock-btn red" onclick="stopExecution()" id="stopBtn" disabled>
+        <i class="fas fa-stop"></i> Stop
+      </button>
+      <button class="mblock-btn orange" onclick="copyCode()">
+        <i class="fas fa-copy"></i> Salin
+      </button>
+    </div>
+    
+    <div class="status-footer">
+      <span><span class="status-dot loading" id="pyodideStatusDot"></span> <span id="statusText">Pyodide memuat...</span></span>
+      <span><i class="fas fa-cubes"></i> <span id="blockCount">0</span> blok</span>
+      <span><i class="fas fa-code"></i> <span id="lineCount">0</span> baris</span>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"><i class="fas fa-check-circle"></i> <span id="toastMessage"></span></div>
+
+<!-- Menambah Blok -->
+<xml id="toolbox" style="display: none">
+  <!-- Variabel -->
+  <category name="Variabel" colour="#FFB347" custom="VARIABLE"></category>
+
+  <!-- Teks / String -->
+  <category name="Teks" colour="#FFB347">
+    <block type="text"></block>
+    <block type="text_join"></block>
+    <block type="text_append"></block>
+    <block type="text_length"></block>
+    <block type="text_isEmpty"></block>
+    <block type="text_indexOf"></block>
+    <block type="text_charAt"></block>
+    <block type="text_getSubstring"></block>
+    <block type="text_changeCase"></block>
+    <block type="text_trim"></block>
+    <block type="text_print"></block>
+    <block type="text_prompt_ext"></block>
+  </category>
+
+  <!-- Matematika -->
+  <category name="Matematika" colour="#FFE55C">
+    <block type="math_number"></block>
+    <block type="math_arithmetic"></block>
+    <block type="math_single"></block>
+    <block type="math_trig"></block>
+    <block type="math_constant"></block>
+    <block type="math_number_property"></block>
+    <block type="math_round"></block>
+    <block type="math_on_list"></block>
+    <block type="math_modulo"></block>
+    <block type="math_constrain"></block>
+    <block type="math_random_int"></block>
+    <block type="math_random_float"></block>
+  </category>
+  
+  <!-- Kontrol / Logika -->
+  <category name="Kontrol" colour="#FF8C69">
+    <block type="controls_if"></block>
+    <block type="controls_ifelse"></block>
+    <block type="controls_repeat_ext"></block>
+    <block type="controls_whileUntil"></block>
+    <block type="controls_for"></block>
+    <block type="controls_flow_statements"></block>
+  </category>
+
+  <!-- Logika -->
+  <category name="Logika" colour="#5CADFF">
+    <block type="logic_compare"></block>
+    <block type="logic_operation"></block>
+    <block type="logic_negate"></block>
+    <block type="logic_boolean"></block>
+    <block type="logic_null"></block>
+    <block type="logic_ternary"></block>
+  </category>
+
+  <!-- List / Senarai -->
+  <category name="List" colour="#7B9EFF">
+    <block type="lists_create_with"></block>
+    <block type="lists_repeat"></block>
+    <block type="lists_length"></block>
+    <block type="lists_isEmpty"></block>
+    <block type="lists_indexOf"></block>
+    <block type="lists_getIndex"></block>
+    <block type="lists_setIndex"></block>
+    <block type="lists_getSublist"></block>
+    <block type="lists_split"></block>
+    <block type="lists_sort"></block>
+  </category>
+
+  <!-- Fungsi / Prosedur -->
+  <category name="Fungsi" colour="#7B9EFF" custom="PROCEDURE"></category>
+
+</xml>
+
+<script>
+  let workspace;
+  let currentMblockTab = 'function';
+  let pyodide;
+  let pyodideReady = false;
+  let expandedTopic = null;
+  let brightTheme;
+  
+  // Mode: 'block' atau 'manual'
+  let currentMode = 'block';
+  
+  // State halaman (15 topics)
+  let currentPage = 1;
+  const totalPages = 15;
+  
+  // Flag untuk stop execution
+  let stopExecutionFlag = false;
+  let isRunning = false;
+
+  const codeArea = document.getElementById('codeArea');
+  const outputArea = document.getElementById('outputArea');
+  const functionArea = document.getElementById('functionArea');
+  const pythonSplitArea = document.getElementById('pythonSplitArea');
+  const executeBtn = document.getElementById('executeBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const statusText = document.getElementById('statusText');
+  const statusDot = document.getElementById('pyodideStatusDot');
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toastMessage');
+  const pageDisplay = document.getElementById('pageDisplay');
+  const prevBtn = document.getElementById('prevPage');
+  const nextBtn = document.getElementById('nextPage');
+  const codeLineCount = document.getElementById('codeLineCount');
+  const executionTime = document.getElementById('executionTime');
+  const executionStatus = document.getElementById('executionStatus');
+  const modeIndicator = document.getElementById('modeIndicator');
+  const modeSlider = document.getElementById('modeSlider');
+  const syncBtn = document.getElementById('syncBtn');
+
+  // Data topik dari TABLE I
+  const pythonTopics = [
+    {
+      id: 1,
+      name: 'variables',
+      loc: 4,
+      questions: 4,
+      terms: 4,
+      category: 'loc1-4',
+      desc: 'Deklarasi dan penggunaan variabel sederhana',
+      syntax: 'nama_variabel = nilai',
+      example: '# Variables\nnama = "John"\numur = 25\ntinggi = 175.5\nprint(f"Nama: {nama}, Umur: {umur}, Tinggi: {tinggi}")',
+      explanation: 'Variabel digunakan untuk menyimpan data. Python tidak memerlukan deklarasi tipe data.',
+      tags: ['variabel', 'data']
+    },
+    {
+      id: 2,
+      name: 'basic operations',
+      loc: 4,
+      questions: 4,
+      terms: 5,
+      category: 'loc1-4',
+      desc: 'Operasi dasar aritmatika',
+      syntax: 'a + b, a - b, a * b, a / b',
+      example: '# Basic Operations\na = 10\nb = 3\nprint(f"Penjumlahan: {a + b}")\nprint(f"Pengurangan: {a - b}")\nprint(f"Perkalian: {a * b}")\nprint(f"Pembagian: {a / b}")',
+      explanation: 'Operasi dasar matematika: +, -, *, /',
+      tags: ['operasi', 'matematika']
+    },
+    {
+      id: 3,
+      name: 'swap two variables',
+      loc: 6,
+      questions: 5,
+      terms: 5,
+      category: 'loc5-8',
+      desc: 'Menukar nilai dua variabel',
+      syntax: 'temp = x; x = y; y = temp',
+      example: '# Swap Two Variables\nx = 5\ny = 10\nprint(f"Sebelum swap: x={x}, y={y}")\n\n# Cara 1: dengan variabel temporary\ntemp = x\nx = y\ny = temp\nprint(f"Setelah swap (cara 1): x={x}, y={y}")\n\n# Cara 2: tanpa temporary (Python style)\nx, y = y, x\nprint(f"Setelah swap (cara 2): x={x}, y={y}")',
+      explanation: 'Menukar nilai dua variabel bisa dilakukan dengan variabel temporary atau dengan tuple unpacking.',
+      tags: ['swap', 'tukar']
+    },
+    {
+      id: 4,
+      name: 'if',
+      loc: 3,
+      questions: 4,
+      terms: 2,
+      category: 'loc1-4',
+      desc: 'Percabangan sederhana dengan if',
+      syntax: 'if kondisi:\n    # kode yang dijalankan',
+      example: '# If Statement\nnilai = 75\nif nilai >= 60:\n    print("Lulus")',
+      explanation: 'If statement mengeksekusi blok kode jika kondisi bernilai True.',
+      tags: ['if', 'percabangan']
+    },
+    {
+      id: 5,
+      name: 'if else',
+      loc: 6,
+      questions: 5,
+      terms: 9,
+      category: 'loc5-8',
+      desc: 'Percabangan dengan if-else',
+      syntax: 'if kondisi:\n    # kode jika True\nelse:\n    # kode jika False',
+      example: '# If Else Statement\nnilai = 45\nif nilai >= 60:\n    print("Lulus")\n    print("Selamat!")\nelse:\n    print("Tidak lulus")\n    print("Silakan coba lagi")',
+      explanation: 'If-else memberikan dua alternatif: jika kondisi True maka blok if dijalankan, jika False maka blok else dijalankan.',
+      tags: ['if-else', 'percabangan']
+    },
+    {
+      id: 6,
+      name: 'if elif else',
+      loc: 7,
+      questions: 5,
+      terms: 5,
+      category: 'loc5-8',
+      desc: 'Percabangan dengan if-elif-else',
+      syntax: 'if kondisi1:\n    # kode\nelif kondisi2:\n    # kode\nelse:\n    # kode',
+      example: '# If Elif Else\nnilai = 75\nif nilai >= 90:\n    grade = "A"\nelif nilai >= 80:\n    grade = "B"\nelif nilai >= 70:\n    grade = "C"\nelif nilai >= 60:\n    grade = "D"\nelse:\n    grade = "E"\nprint(f"Nilai: {nilai}, Grade: {grade}")',
+      explanation: 'If-elif-else digunakan untuk multiple kondisi.',
+      tags: ['if-elif-else', 'percabangan']
+    },
+    {
+      id: 7,
+      name: 'if elif else (complex)',
+      loc: 11,
+      questions: 5,
+      terms: 6,
+      category: 'loc9-12',
+      desc: 'Percabangan kompleks dengan if-elif-else',
+      syntax: 'if kondisi1:\n    # kode\nelif kondisi2:\n    # kode\nelif kondisi3:\n    # kode\nelse:\n    # kode',
+      example: '# If Elif Else Complex\n# Program penentu kategori usia\numur = 25\nif umur < 0:\n    kategori = "Tidak valid"\nelif umur < 2:\n    kategori = "Bayi"\nelif umur < 12:\n    kategori = "Anak-anak"\nelif umur < 18:\n    kategori = "Remaja"\nelif umur < 30:\n    kategori = "Dewasa muda"\nelif umur < 60:\n    kategori = "Dewasa"\nelse:\n    kategori = "Lansia"\nprint(f"Umur {umur} tahun: {kategori}")',
+      explanation: 'Contoh if-elif-else dengan banyak kondisi dan kategori.',
+      tags: ['if-elif-else', 'kompleks']
+    },
+    {
+      id: 8,
+      name: 'for',
+      loc: 3,
+      questions: 7,
+      terms: 4,
+      category: 'loc1-4',
+      desc: 'Perulangan for',
+      syntax: 'for item in sequence:\n    # kode',
+      example: '# For Loop\nfor i in range(5):\n    print(f"Perulangan ke-{i}")\n\n# For loop dengan list\nbuah = ["apel", "mangga", "jeruk"]\nfor item in buah:\n    print(f"Saya suka {item}")',
+      explanation: 'For loop digunakan untuk mengulang blok kode untuk setiap item dalam sequence.',
+      tags: ['for', 'perulangan']
+    },
+    {
+      id: 9,
+      name: 'while',
+      loc: 7,
+      questions: 5,
+      terms: 6,
+      category: 'loc5-8',
+      desc: 'Perulangan while',
+      syntax: 'while kondisi:\n    # kode',
+      example: '# While Loop\ncount = 1\nwhile count <= 5:\n    print(f"Count: {count}")\n    count += 1\n\n# While dengan input\njawaban = ""\nwhile jawaban.lower() != "ya":\n    jawaban = input("Apakah Anda ingin keluar? (ya/tidak): ")\nprint("Terima kasih!")',
+      explanation: 'While loop mengulang selama kondisi bernilai True.',
+      tags: ['while', 'perulangan']
+    },
+    {
+      id: 10,
+      name: 'break',
+      loc: 4,
+      questions: 4,
+      terms: 6,
+      category: 'loc1-4',
+      desc: 'Break untuk menghentikan loop',
+      syntax: 'break',
+      example: '# Break Statement\nfor i in range(10):\n    if i == 5:\n        break\n    print(f"i = {i}")\nprint("Loop berhenti di i=5")\n\n# While dengan break\nn = 0\nwhile True:\n    print(n)\n    n += 1\n    if n > 3:\n        break',
+      explanation: 'Break menghentikan loop secara paksa.',
+      tags: ['break', 'kontrol']
+    },
+    {
+      id: 11,
+      name: 'continue',
+      loc: 4,
+      questions: 4,
+      terms: 4,
+      category: 'loc1-4',
+      desc: 'Continue untuk melewati iterasi',
+      syntax: 'continue',
+      example: '# Continue Statement\nfor i in range(6):\n    if i == 3:\n        continue\n    print(f"i = {i}")\nprint("Nilai 3 dilewati")\n\n# Contoh: print bilangan genap saja\nfor i in range(10):\n    if i % 2 != 0:\n        continue\n    print(f"Genap: {i}")',
+      explanation: 'Continue melewati iterasi saat ini dan lanjut ke iterasi berikutnya.',
+      tags: ['continue', 'kontrol']
+    },
+    {
+      id: 12,
+      name: 'calculate triangle area',
+      loc: 4,
+      questions: 4,
+      terms: 5,
+      category: 'loc1-4',
+      desc: 'Menghitung luas segitiga',
+      syntax: 'luas = 0.5 * alas * tinggi',
+      example: '# Calculate Triangle Area\nalas = 10\ntinggi = 8\nluas = 0.5 * alas * tinggi\nprint(f"Alas: {alas}, Tinggi: {tinggi}")\nprint(f"Luas segitiga: {luas}")\n',
+      explanation: 'Rumus luas segitiga: 1/2 * alas * tinggi',
+      tags: ['geometri', 'matematika']
+    },
+    {
+      id: 13,
+      name: 'list',
+      loc: 6,
+      questions: 6,
+      terms: 5,
+      category: 'loc5-8',
+      desc: 'Operasi dasar pada list',
+      syntax: 'list.append(item), list.remove(item), list[index]',
+      example: '# List Operations\nbuah = ["apel", "mangga", "jeruk"]\nprint(f"List awal: {buah}")\nprint(f"Jumlah item: {len(buah)}")\nprint(f"Item pertama: {buah[0]}")\nprint(f"Item terakhir: {buah[-1]}")\n\n# Menambah item\nbuah.append("pisang")\nprint(f"Setelah append: {buah}")\n\n# Menghapus item\nbuah.remove("mangga")\nprint(f"Setelah remove: {buah}")\n\n# Mengubah item\nbuah[0] = "semangka"\nprint(f"Setelah ubah: {buah}")',
+      explanation: 'List adalah koleksi item yang dapat diubah (mutable).',
+      tags: ['list', 'array']
+    },
+    {
+      id: 14,
+      name: 'calculate sum of all even numbers in list',
+      loc: 6,
+      questions: 4,
+      terms: 5,
+      category: 'loc5-8',
+      desc: 'Menjumlahkan semua bilangan genap dalam list',
+      syntax: 'for num in list: if num % 2 == 0: total += num',
+      example: '# Sum of Even Numbers in List\nangka = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\njumlah_genap = 0\n\nfor num in angka:\n    if num % 2 == 0:\n        jumlah_genap += num\n        print(f"Menambahkan {num}, total sementara: {jumlah_genap}")\n\nprint(f"List: {angka}")\nprint(f"Jumlah semua bilangan genap: {jumlah_genap}")\n\n# Cara alternatif dengan list comprehension\ngenap = [x for x in angka if x % 2 == 0]\nprint(f"Bilangan genap: {genap}")\nprint(f"Jumlah (cara 2): {sum(genap)}")',
+      explanation: 'Menggunakan for loop dan if untuk memfilter bilangan genap, lalu menjumlahkannya.',
+      tags: ['list', 'genap', 'sum']
+    },
+    {
+      id: 15,
+      name: 'set',
+      loc: 12,
+      questions: 7,
+      terms: 8,
+      category: 'loc9-12',
+      desc: 'Operasi pada set (himpunan)',
+      syntax: 'set_a | set_b (union), set_a & set_b (intersection), set_a - set_b (difference)',
+      example: '# Set Operations\nset_a = {1, 2, 3, 4, 5}\nset_b = {4, 5, 6, 7, 8}\n\nprint(f"Set A: {set_a}")\nprint(f"Set B: {set_b}")\n\n# Union (gabungan)\nunion = set_a | set_b\nprint(f"Union A | B: {union}")\n\n# Intersection (irisan)\nintersection = set_a & set_b\nprint(f"Intersection A & B: {intersection}")\n\n# Difference (selisih)\ndiff_a_b = set_a - set_b\ndiff_b_a = set_b - set_a\nprint(f"Difference A - B: {diff_a_b}")\nprint(f"Difference B - A: {diff_b_a}")\n\n# Symmetric Difference (selisih simetris)\nsym_diff = set_a ^ set_b\nprint(f"Symmetric Difference A ^ B: {sym_diff}")\n\n# Menambah elemen\nset_a.add(6)\nprint(f"Set A setelah add 6: {set_a}")\n\n# Menghapus elemen\nset_a.discard(1)\nprint(f"Set A setelah discard 1: {set_a}")\n\n# Cek anggota\nprint(f"Apakah 5 ada di set A? {5 in set_a}")',
+      explanation: 'Set adalah koleksi item unik tanpa urutan. Mendukung operasi himpunan seperti union, intersection, difference.',
+      tags: ['set', 'himpunan']
+    }
+  ];
+
+  // Fungsi untuk menampilkan daftar topik
+  function renderTopicList(searchTerm = '', category = 'all') {
+    const functionList = document.getElementById('functionList');
+    let filteredTopics = pythonTopics;
+
+    if (category !== 'all') {
+      filteredTopics = filteredTopics.filter(t => t.category === category);
+    }
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filteredTopics = filteredTopics.filter(t => 
+        t.name.toLowerCase().includes(term) || 
+        t.desc.toLowerCase().includes(term) ||
+        (t.tags && t.tags.some(tag => tag.includes(term)))
+      );
+    }
+
+    if (filteredTopics.length === 0) {
+      functionList.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Tidak ada topik yang ditemukan</div>';
+      return;
+    }
+
+    functionList.innerHTML = filteredTopics.map(topic => `
+      <div class="function-item ${expandedTopic === topic.id ? 'expanded' : ''}" onclick="toggleTopic('${topic.id}')">
+        <div class="function-name">
+          <i class="fas ${expandedTopic === topic.id ? 'fa-chevron-down' : 'fa-chevron-right'}"></i>
+          ${topic.id}. ${topic.name}
+          <span style="margin-left: auto; font-size: 11px; background: #5a8cff20; padding: 2px 6px; border-radius: 10px;">
+            LOC: ${topic.loc}
+          </span>
+        </div>
+        <div class="function-desc">${topic.desc}</div>
+        ${expandedTopic === topic.id ? `
+          <div style="margin-top: 15px;">
+            <div style="display: flex; gap: 15px; margin-bottom: 15px; padding: 10px; background: rgba(90,140,255,0.1); border-radius: 6px;">
+              <div><i class="fas fa-code"></i> <strong>LOC:</strong> ${topic.loc}</div>
+              <div><i class="fas fa-question-circle"></i> <strong>Questions:</strong> ${topic.questions}</div>
+              <div><i class="fas fa-tag"></i> <strong>Terms:</strong> ${topic.terms}</div>
+            </div>
+            
+            <div class="function-syntax">${topic.syntax}</div>
+            
+            <div class="function-example">
+              <i class="fas fa-info-circle"></i> <strong>Penjelasan:</strong><br>
+              ${topic.explanation}
+            </div>
+            
+            <div class="function-example">
+              <i class="fas fa-code"></i> <strong>Contoh Kode:</strong><br>
+              <pre style="margin: 10px 0; white-space: pre-wrap;">${topic.example}</pre>
+            </div>
+            
+            <div class="function-meta">
+              ${topic.tags ? topic.tags.map(tag => `<span class="function-tag">${tag}</span>`).join('') : ''}
+            </div>
+            
+            <button class="insert-btn" onclick="event.stopPropagation(); loadTopicCode(${topic.id})">
+              <i class="fas fa-plus"></i> Load Code
+            </button>
+          </div>
+        ` : ''}
+      </div>
+    `).join('');
+  }
+
+  window.toggleTopic = function(topicId) {
+    const id = parseInt(topicId);
+    if (expandedTopic === id) {
+      expandedTopic = null;
+    } else {
+      expandedTopic = id;
+    }
+    const searchInput = document.getElementById('functionSearch');
+    const activeCategory = document.querySelector('.function-category.active');
+    const category = activeCategory ? activeCategory.dataset.category : 'all';
+    renderTopicList(searchInput.value, category);
+  };
+
+  // Load topic code
+  window.loadTopicCode = function(topicId) {
+    const topic = pythonTopics.find(t => t.id === topicId);
+    if (topic) {
+      showToast(`Memuat topik: ${topic.name}`);
+      
+      switchMblockTab('python');
+      
+      // Set mode ke manual dan masukkan kode
+      setMode('manual');
+      codeArea.textContent = topic.example;
+      
+      updateCodeLineCount();
+    }
+  };
+
+  // Set mode
+  window.setMode = function(mode) {
+    currentMode = mode;
+    
+    // Update slider
+    if (mode === 'manual') {
+      modeSlider.classList.add('manual');
+      modeIndicator.innerHTML = '<i class="fas fa-pen"></i> Mode: Manual';
+      modeIndicator.className = 'source-indicator manual';
+      codeArea.classList.add('manual-mode');
+      codeArea.classList.remove('block-mode');
+      
+      // Enable sync button
+      syncBtn.disabled = false;
+    } else {
+      modeSlider.classList.remove('manual');
+      modeIndicator.innerHTML = '<i class="fas fa-cubes"></i> Mode: Block';
+      modeIndicator.className = 'source-indicator blocks';
+      codeArea.classList.add('block-mode');
+      codeArea.classList.remove('manual-mode');
+      
+      // Disable sync button
+      syncBtn.disabled = true;
+      
+      // Sync dari blocks
+      syncFromBlocks();
+    }
+    
+    showToast(`Mode ${mode === 'manual' ? 'Manual' : 'Block'} aktif`);
+  };
+
+  // Sync dari blocks
+  window.syncFromBlocks = function() {
+    const code = Blockly.Python.workspaceToCode(workspace);
+    codeArea.textContent = code || '# (kosong)';
+    updateCodeLineCount();
+    showToast('Disync dari block');
+  };
+
+  // Update line count
+  function updateCodeLineCount() {
+    const lines = codeArea.textContent.split('\n').filter(l => l.trim() !== '').length;
+    codeLineCount.textContent = `${lines} baris`;
+  }
+
+  // Clear output
+  window.clearOutput = function() {
+    outputArea.textContent = '';
+    executionTime.textContent = '';
+    executionStatus.textContent = '';
+    showToast('Output dibersihkan');
+  };
+
+  // Switch tab
+  window.switchMblockTab = function(tab) {
+    currentMblockTab = tab;
+    document.getElementById('tabFunction').classList.toggle('active', tab === 'function');
+    document.getElementById('tabPython').classList.toggle('active', tab === 'python');
+    
+    if (tab === 'function') {
+      functionArea.style.display = 'flex';
+      pythonSplitArea.style.display = 'none';
+      
+      const searchInput = document.getElementById('functionSearch');
+      const activeCategory = document.querySelector('.function-category.active');
+      renderTopicList(searchInput.value, activeCategory.dataset.category);
+    } else {
+      functionArea.style.display = 'none';
+      pythonSplitArea.style.display = 'flex';
+      
+      // Update berdasarkan mode
+      if (currentMode === 'block') {
+        syncFromBlocks();
+      }
+    }
+  };
+
+  function showToast(msg, isError = false, isStop = false) {
+    toastMsg.textContent = msg;
+    if (isStop) {
+      toast.style.background = '#ff5555';
+      toast.classList.add('stop');
+    } else if (isError) {
+      toast.style.background = '#ff5555';
+    } else {
+      toast.style.background = '#00cc88';
+    }
+    toast.style.display = 'flex';
+    setTimeout(() => {
+      toast.style.display = 'none';
+      toast.classList.remove('stop');
+    }, 2500);
+  }
+
+  function updateStats() {
+    if (!workspace) return;
+    const blocks = workspace.getAllBlocks();
+    const blockCount = blocks.length;
+    document.getElementById('blockCount').textContent = blockCount;
+    
+    const code = Blockly.Python.workspaceToCode(workspace);
+    const lines = code.split('\n').filter(l => l.trim() !== '').length;
+    document.getElementById('lineCount').textContent = lines;
+    
+    // Update jika mode block
+    if (currentMode === 'block' && currentMblockTab === 'python') {
+      codeArea.textContent = code || '# (kosong)';
+      updateCodeLineCount();
+    }
+  }
+
+  // ========== FUNGSI GENERATOR KONTEN BERDASARKAN HALAMAN ==========
+  function loadPage(page) {
+    workspace.clear();
+    
+    try {
+      const topic = pythonTopics[page - 1];
+      
+      // Buat blok sesuai topik
+      switch(page) {
+        case 1: // Variables
+          {
+            // Buat variabel nama
+            const setVar1 = workspace.newBlock('variables_set');
+            setVar1.setFieldValue('nama', 'VAR');
+            setVar1.initSvg();
+            setVar1.render();
+            setVar1.moveBy(50, 50);
+            
+            const text1 = workspace.newBlock('text');
+            text1.setFieldValue('John', 'TEXT');
+            text1.initSvg();
+            text1.render();
+            text1.moveBy(50, 150);
+            setVar1.getInput('VALUE').connection.connect(text1.outputConnection);
+            
+            // Buat variabel umur
+            const setVar2 = workspace.newBlock('variables_set');
+            setVar2.setFieldValue('umur', 'VAR');
+            setVar2.initSvg();
+            setVar2.render();
+            setVar2.moveBy(250, 50);
+            
+            const num2 = workspace.newBlock('math_number');
+            num2.setFieldValue('25', 'NUM');
+            num2.initSvg();
+            num2.render();
+            num2.moveBy(250, 150);
+            setVar2.getInput('VALUE').connection.connect(num2.outputConnection);
+            
+            // Buat print
+            const printBlock = workspace.newBlock('text_print');
+            printBlock.initSvg();
+            printBlock.render();
+            printBlock.moveBy(150, 250);
+            
+            const textJoin = workspace.newBlock('text_join');
+            textJoin.initSvg();
+            textJoin.render();
+            textJoin.moveBy(150, 350);
+            
+            // Tambah input jika perlu
+            while (textJoin.inputList.length < 4) {
+              textJoin.appendValueInput('ADD' + textJoin.inputList.length);
+            }
+            textJoin.render();
+            
+            const textNama = workspace.newBlock('text');
+            textNama.setFieldValue('Nama: ', 'TEXT');
+            textNama.initSvg();
+            textNama.render();
+            textNama.moveBy(50, 450);
+            
+            const getNama = workspace.newBlock('variables_get');
+            getNama.setFieldValue('nama', 'VAR');
+            getNama.initSvg();
+            getNama.render();
+            getNama.moveBy(150, 450);
+            
+            const textKoma = workspace.newBlock('text');
+            textKoma.setFieldValue(', Umur: ', 'TEXT');
+            textKoma.initSvg();
+            textKoma.render();
+            textKoma.moveBy(250, 450);
+            
+            const getUmur = workspace.newBlock('variables_get');
+            getUmur.setFieldValue('umur', 'VAR');
+            getUmur.initSvg();
+            getUmur.render();
+            getUmur.moveBy(360, 450);
+            
+            textJoin.getInput('ADD0').connection.connect(textNama.outputConnection);
+            textJoin.getInput('ADD1').connection.connect(getNama.outputConnection);
+            textJoin.getInput('ADD2').connection.connect(textKoma.outputConnection);
+            textJoin.getInput('ADD3').connection.connect(getUmur.outputConnection);
+            
+            printBlock.getInput('TEXT').connection.connect(textJoin.outputConnection);
+          }
+          break;
+          
+        case 2: // Basic Operations
+          {
+            // Variabel a dan b
+            const setVarA = workspace.newBlock('variables_set');
+            setVarA.setFieldValue('a', 'VAR');
+            setVarA.initSvg();
+            setVarA.render();
+            setVarA.moveBy(50, 50);
+            
+            const numA = workspace.newBlock('math_number');
+            numA.setFieldValue('10', 'NUM');
+            numA.initSvg();
+            numA.render();
+            numA.moveBy(50, 150);
+            setVarA.getInput('VALUE').connection.connect(numA.outputConnection);
+            
+            const setVarB = workspace.newBlock('variables_set');
+            setVarB.setFieldValue('b', 'VAR');
+            setVarB.initSvg();
+            setVarB.render();
+            setVarB.moveBy(250, 50);
+            
+            const numB = workspace.newBlock('math_number');
+            numB.setFieldValue('3', 'NUM');
+            numB.initSvg();
+            numB.render();
+            numB.moveBy(250, 150);
+            setVarB.getInput('VALUE').connection.connect(numB.outputConnection);
+            
+            // Operasi penjumlahan
+            const printAdd = workspace.newBlock('text_print');
+            printAdd.initSvg();
+            printAdd.render();
+            printAdd.moveBy(50, 220);
+            
+            const addBlock = workspace.newBlock('math_arithmetic');
+            addBlock.setFieldValue('ADD', 'OP');
+            addBlock.initSvg();
+            addBlock.render();
+            addBlock.moveBy(50, 320);
+            
+            const getA1 = workspace.newBlock('variables_get');
+            getA1.setFieldValue('a', 'VAR');
+            getA1.initSvg();
+            getA1.render();
+            getA1.moveBy(20, 420);
+            
+            const getB1 = workspace.newBlock('variables_get');
+            getB1.setFieldValue('b', 'VAR');
+            getB1.initSvg();
+            getB1.render();
+            getB1.moveBy(150, 420);
+            
+            addBlock.getInput('A').connection.connect(getA1.outputConnection);
+            addBlock.getInput('B').connection.connect(getB1.outputConnection);
+            printAdd.getInput('TEXT').connection.connect(addBlock.outputConnection);
+            
+            // Operasi pengurangan
+            const printSub = workspace.newBlock('text_print');
+            printSub.initSvg();
+            printSub.render();
+            printSub.moveBy(300, 220);
+            
+            const subBlock = workspace.newBlock('math_arithmetic');
+            subBlock.setFieldValue('MINUS', 'OP');
+            subBlock.initSvg();
+            subBlock.render();
+            subBlock.moveBy(300, 320);
+            
+            const getA2 = workspace.newBlock('variables_get');
+            getA2.setFieldValue('a', 'VAR');
+            getA2.initSvg();
+            getA2.render();
+            getA2.moveBy(270, 420);
+            
+            const getB2 = workspace.newBlock('variables_get');
+            getB2.setFieldValue('b', 'VAR');
+            getB2.initSvg();
+            getB2.render();
+            getB2.moveBy(400, 420);
+            
+            subBlock.getInput('A').connection.connect(getA2.outputConnection);
+            subBlock.getInput('B').connection.connect(getB2.outputConnection);
+            printSub.getInput('TEXT').connection.connect(subBlock.outputConnection);
+          }
+          break;
+          
+        case 3: // Swap Two Variables
+          {
+            // Inisialisasi x dan y
+            const setX = workspace.newBlock('variables_set');
+            setX.setFieldValue('x', 'VAR');
+            setX.initSvg();
+            setX.render();
+            setX.moveBy(50, 30);
+            
+            const numX = workspace.newBlock('math_number');
+            numX.setFieldValue('5', 'NUM');
+            numX.initSvg();
+            numX.render();
+            numX.moveBy(50, 130);
+            setX.getInput('VALUE').connection.connect(numX.outputConnection);
+            
+            const setY = workspace.newBlock('variables_set');
+            setY.setFieldValue('y', 'VAR');
+            setY.initSvg();
+            setY.render();
+            setY.moveBy(250, 30);
+            
+            const numY = workspace.newBlock('math_number');
+            numY.setFieldValue('10', 'NUM');
+            numY.initSvg();
+            numY.render();
+            numY.moveBy(250, 130);
+            setY.getInput('VALUE').connection.connect(numY.outputConnection);
+            
+            // Print sebelum swap
+            const printBefore = workspace.newBlock('text_print');
+            printBefore.initSvg();
+            printBefore.render();
+            printBefore.moveBy(50, 200);
+            
+            const joinBefore = workspace.newBlock('text_join');
+            joinBefore.initSvg();
+            joinBefore.render();
+            joinBefore.moveBy(50, 300);
+            
+            while (joinBefore.inputList.length < 4) {
+              joinBefore.appendValueInput('ADD' + joinBefore.inputList.length);
+            }
+            joinBefore.render();
+            
+            const textBefore = workspace.newBlock('text');
+            textBefore.setFieldValue('Sebelum swap: x=', 'TEXT');
+            textBefore.initSvg();
+            textBefore.render();
+            textBefore.moveBy(20, 400);
+            
+            const getX1 = workspace.newBlock('variables_get');
+            getX1.setFieldValue('x', 'VAR');
+            getX1.initSvg();
+            getX1.render();
+            getX1.moveBy(140, 400);
+            
+            const textKoma = workspace.newBlock('text');
+            textKoma.setFieldValue(', y=', 'TEXT');
+            textKoma.initSvg();
+            textKoma.render();
+            textKoma.moveBy(240, 400);
+            
+            const getY1 = workspace.newBlock('variables_get');
+            getY1.setFieldValue('y', 'VAR');
+            getY1.initSvg();
+            getY1.render();
+            getY1.moveBy(340, 400);
+            
+            joinBefore.getInput('ADD0').connection.connect(textBefore.outputConnection);
+            joinBefore.getInput('ADD1').connection.connect(getX1.outputConnection);
+            joinBefore.getInput('ADD2').connection.connect(textKoma.outputConnection);
+            joinBefore.getInput('ADD3').connection.connect(getY1.outputConnection);
+            printBefore.getInput('TEXT').connection.connect(joinBefore.outputConnection);
+            
+            // Swap dengan temporary variable
+            const setTemp = workspace.newBlock('variables_set');
+            setTemp.setFieldValue('temp', 'VAR');
+            setTemp.initSvg();
+            setTemp.render();
+            setTemp.moveBy(50, 500);
+            
+            const getX2 = workspace.newBlock('variables_get');
+            getX2.setFieldValue('x', 'VAR');
+            getX2.initSvg();
+            getX2.render();
+            getX2.moveBy(50, 600);
+            setTemp.getInput('VALUE').connection.connect(getX2.outputConnection);
+            
+            const setX2 = workspace.newBlock('variables_set');
+            setX2.setFieldValue('x', 'VAR');
+            setX2.initSvg();
+            setX2.render();
+            setX2.moveBy(250, 500);
+            
+            const getY2 = workspace.newBlock('variables_get');
+            getY2.setFieldValue('y', 'VAR');
+            getY2.initSvg();
+            getY2.render();
+            getY2.moveBy(250, 600);
+            setX2.getInput('VALUE').connection.connect(getY2.outputConnection);
+            
+            const setY2 = workspace.newBlock('variables_set');
+            setY2.setFieldValue('y', 'VAR');
+            setY2.initSvg();
+            setY2.render();
+            setY2.moveBy(450, 500);
+            
+            const getTemp = workspace.newBlock('variables_get');
+            getTemp.setFieldValue('temp', 'VAR');
+            getTemp.initSvg();
+            getTemp.render();
+            getTemp.moveBy(450, 600);
+            setY2.getInput('VALUE').connection.connect(getTemp.outputConnection);
+            
+            // Sambungkan blok secara berurutan
+            setTemp.nextConnection.connect(setX2.previousConnection);
+            setX2.nextConnection.connect(setY2.previousConnection);
+            
+            // Print setelah swap
+            const printAfter = workspace.newBlock('text_print');
+            printAfter.initSvg();
+            printAfter.render();
+            printAfter.moveBy(50, 700);
+            
+            const joinAfter = workspace.newBlock('text_join');
+            joinAfter.initSvg();
+            joinAfter.render();
+            joinAfter.moveBy(50, 800);
+            
+            while (joinAfter.inputList.length < 4) {
+              joinAfter.appendValueInput('ADD' + joinAfter.inputList.length);
+            }
+            joinAfter.render();
+            
+            const textAfter = workspace.newBlock('text');
+            textAfter.setFieldValue('Setelah swap: x=', 'TEXT');
+            textAfter.initSvg();
+            textAfter.render();
+            textAfter.moveBy(20, 900);
+            
+            const getX3 = workspace.newBlock('variables_get');
+            getX3.setFieldValue('x', 'VAR');
+            getX3.initSvg();
+            getX3.render();
+            getX3.moveBy(140, 900);
+            
+            const textKoma2 = workspace.newBlock('text');
+            textKoma2.setFieldValue(', y=', 'TEXT');
+            textKoma2.initSvg();
+            textKoma2.render();
+            textKoma2.moveBy(240, 900);
+            
+            const getY3 = workspace.newBlock('variables_get');
+            getY3.setFieldValue('y', 'VAR');
+            getY3.initSvg();
+            getY3.render();
+            getY3.moveBy(340, 900);
+            
+            joinAfter.getInput('ADD0').connection.connect(textAfter.outputConnection);
+            joinAfter.getInput('ADD1').connection.connect(getX3.outputConnection);
+            joinAfter.getInput('ADD2').connection.connect(textKoma2.outputConnection);
+            joinAfter.getInput('ADD3').connection.connect(getY3.outputConnection);
+            printAfter.getInput('TEXT').connection.connect(joinAfter.outputConnection);
+            
+            // Sambungkan print setelah swap ke blok swap
+            setY2.nextConnection.connect(printAfter.previousConnection);
+          }
+          break;
+          
+        case 4: // If
+          {
+            // Set nilai
+            const setNilai = workspace.newBlock('variables_set');
+            setNilai.setFieldValue('nilai', 'VAR');
+            setNilai.initSvg();
+            setNilai.render();
+            setNilai.moveBy(50, 50);
+            
+            const numNilai = workspace.newBlock('math_number');
+            numNilai.setFieldValue('75', 'NUM');
+            numNilai.initSvg();
+            numNilai.render();
+            numNilai.moveBy(50, 150);
+            setNilai.getInput('VALUE').connection.connect(numNilai.outputConnection);
+            
+            // If block
+            const ifBlock = workspace.newBlock('controls_if');
+            ifBlock.initSvg();
+            ifBlock.render();
+            ifBlock.moveBy(50, 220);
+            
+            const compare = workspace.newBlock('logic_compare');
+            compare.setFieldValue('GTE', 'OP');
+            compare.initSvg();
+            compare.render();
+            compare.moveBy(50, 350);
+            
+            const getNilai = workspace.newBlock('variables_get');
+            getNilai.setFieldValue('nilai', 'VAR');
+            getNilai.initSvg();
+            getNilai.render();
+            getNilai.moveBy(20, 450);
+            
+            const num60 = workspace.newBlock('math_number');
+            num60.setFieldValue('60', 'NUM');
+            num60.initSvg();
+            num60.render();
+            num60.moveBy(150, 450);
+            
+            compare.getInput('A').connection.connect(getNilai.outputConnection);
+            compare.getInput('B').connection.connect(num60.outputConnection);
+            ifBlock.getInput('IF0').connection.connect(compare.outputConnection);
+            
+            // Print di dalam if
+            const printLulus = workspace.newBlock('text_print');
+            printLulus.initSvg();
+            printLulus.render();
+            printLulus.moveBy(300, 280);
+            
+            const textLulus = workspace.newBlock('text');
+            textLulus.setFieldValue('Lulus', 'TEXT');
+            textLulus.initSvg();
+            textLulus.render();
+            textLulus.moveBy(300, 380);
+            
+            printLulus.getInput('TEXT').connection.connect(textLulus.outputConnection);
+            ifBlock.getInput('DO0').connection.connect(printLulus.previousConnection);
+          }
+          break;
+          
+        case 5: // If Else
+          {
+            // Set nilai
+            const setNilai = workspace.newBlock('variables_set');
+            setNilai.setFieldValue('nilai', 'VAR');
+            setNilai.initSvg();
+            setNilai.render();
+            setNilai.moveBy(50, 30);
+            
+            const numNilai = workspace.newBlock('math_number');
+            numNilai.setFieldValue('45', 'NUM');
+            numNilai.initSvg();
+            numNilai.render();
+            numNilai.moveBy(50, 130);
+            setNilai.getInput('VALUE').connection.connect(numNilai.outputConnection);
+            
+            // If-else block
+            const ifElseBlock = workspace.newBlock('controls_ifelse');
+            ifElseBlock.initSvg();
+            ifElseBlock.render();
+            ifElseBlock.moveBy(50, 200);
+            
+            const compare = workspace.newBlock('logic_compare');
+            compare.setFieldValue('GTE', 'OP');
+            compare.initSvg();
+            compare.render();
+            compare.moveBy(50, 330);
+            
+            const getNilai = workspace.newBlock('variables_get');
+            getNilai.setFieldValue('nilai', 'VAR');
+            getNilai.initSvg();
+            getNilai.render();
+            getNilai.moveBy(20, 430);
+            
+            const num60 = workspace.newBlock('math_number');
+            num60.setFieldValue('60', 'NUM');
+            num60.initSvg();
+            num60.render();
+            num60.moveBy(150, 430);
+            
+            compare.getInput('A').connection.connect(getNilai.outputConnection);
+            compare.getInput('B').connection.connect(num60.outputConnection);
+            ifElseBlock.getInput('IF0').connection.connect(compare.outputConnection);
+            
+            // Print di if
+            const printLulus = workspace.newBlock('text_print');
+            printLulus.initSvg();
+            printLulus.render();
+            printLulus.moveBy(300, 200);
+            
+            const textLulus = workspace.newBlock('text');
+            textLulus.setFieldValue('Lulus', 'TEXT');
+            textLulus.initSvg();
+            textLulus.render();
+            textLulus.moveBy(300, 300);
+            
+            printLulus.getInput('TEXT').connection.connect(textLulus.outputConnection);
+            ifElseBlock.getInput('DO0').connection.connect(printLulus.previousConnection);
+            
+            // Print di else
+            const printTidak = workspace.newBlock('text_print');
+            printTidak.initSvg();
+            printTidak.render();
+            printTidak.moveBy(300, 380);
+            
+            const textTidak = workspace.newBlock('text');
+            textTidak.setFieldValue('Tidak lulus', 'TEXT');
+            textTidak.initSvg();
+            textTidak.render();
+            textTidak.moveBy(300, 480);
+            
+            printTidak.getInput('TEXT').connection.connect(textTidak.outputConnection);
+            ifElseBlock.getInput('ELSE').connection.connect(printTidak.previousConnection);
+          }
+          break;
+          
+        case 6: // If Elif Else
+          {
+            // Set nilai
+            const setNilai = workspace.newBlock('variables_set');
+            setNilai.setFieldValue('nilai', 'VAR');
+            setNilai.initSvg();
+            setNilai.render();
+            setNilai.moveBy(50, 30);
+            
+            const numNilai = workspace.newBlock('math_number');
+            numNilai.setFieldValue('75', 'NUM');
+            numNilai.initSvg();
+            numNilai.render();
+            numNilai.moveBy(50, 130);
+            setNilai.getInput('VALUE').connection.connect(numNilai.outputConnection);
+            
+            // If-elif-else block (menggunakan controls_if dengan multiple elseif)
+            const ifBlock = workspace.newBlock('controls_if');
+            ifBlock.setMutator(new Blockly.Mutator(['controls_if_elseif', 'controls_if_else']));
+            ifBlock.elseifCount_ = 3;
+            ifBlock.elseCount_ = 1;
+            ifBlock.updateShape_();
+            ifBlock.initSvg();
+            ifBlock.render();
+            ifBlock.moveBy(50, 200);
+            
+            // Kondisi pertama: nilai >= 90
+            const compare1 = workspace.newBlock('logic_compare');
+            compare1.setFieldValue('GTE', 'OP');
+            compare1.initSvg();
+            compare1.render();
+            compare1.moveBy(50, 350);
+            
+            const getNilai1 = workspace.newBlock('variables_get');
+            getNilai1.setFieldValue('nilai', 'VAR');
+            getNilai1.initSvg();
+            getNilai1.render();
+            getNilai1.moveBy(20, 450);
+            
+            const num90 = workspace.newBlock('math_number');
+            num90.setFieldValue('90', 'NUM');
+            num90.initSvg();
+            num90.render();
+            num90.moveBy(150, 450);
+            
+            compare1.getInput('A').connection.connect(getNilai1.outputConnection);
+            compare1.getInput('B').connection.connect(num90.outputConnection);
+            ifBlock.getInput('IF0').connection.connect(compare1.outputConnection);
+            
+            // Print grade A
+            const setGrade1 = workspace.newBlock('variables_set');
+            setGrade1.setFieldValue('grade', 'VAR');
+            setGrade1.initSvg();
+            setGrade1.render();
+            setGrade1.moveBy(300, 220);
+            
+            const textA = workspace.newBlock('text');
+            textA.setFieldValue('A', 'TEXT');
+            textA.initSvg();
+            textA.render();
+            textA.moveBy(300, 320);
+            
+            setGrade1.getInput('VALUE').connection.connect(textA.outputConnection);
+            ifBlock.getInput('DO0').connection.connect(setGrade1.previousConnection);
+            
+            // Kondisi kedua: nilai >= 80
+            const compare2 = workspace.newBlock('logic_compare');
+            compare2.setFieldValue('GTE', 'OP');
+            compare2.initSvg();
+            compare2.render();
+            compare2.moveBy(50, 500);
+            
+            const getNilai2 = workspace.newBlock('variables_get');
+            getNilai2.setFieldValue('nilai', 'VAR');
+            getNilai2.initSvg();
+            getNilai2.render();
+            getNilai2.moveBy(20, 600);
+            
+            const num80 = workspace.newBlock('math_number');
+            num80.setFieldValue('80', 'NUM');
+            num80.initSvg();
+            num80.render();
+            num80.moveBy(150, 600);
+            
+            compare2.getInput('A').connection.connect(getNilai2.outputConnection);
+            compare2.getInput('B').connection.connect(num80.outputConnection);
+            ifBlock.getInput('IF1').connection.connect(compare2.outputConnection);
+            
+            // Print grade B
+            const setGrade2 = workspace.newBlock('variables_set');
+            setGrade2.setFieldValue('grade', 'VAR');
+            setGrade2.initSvg();
+            setGrade2.render();
+            setGrade2.moveBy(300, 520);
+            
+            const textB = workspace.newBlock('text');
+            textB.setFieldValue('B', 'TEXT');
+            textB.initSvg();
+            textB.render();
+            textB.moveBy(300, 620);
+            
+            setGrade2.getInput('VALUE').connection.connect(textB.outputConnection);
+            ifBlock.getInput('DO1').connection.connect(setGrade2.previousConnection);
+            
+            // Kondisi ketiga: nilai >= 70
+            const compare3 = workspace.newBlock('logic_compare');
+            compare3.setFieldValue('GTE', 'OP');
+            compare3.initSvg();
+            compare3.render();
+            compare3.moveBy(50, 700);
+            
+            const getNilai3 = workspace.newBlock('variables_get');
+            getNilai3.setFieldValue('nilai', 'VAR');
+            getNilai3.initSvg();
+            getNilai3.render();
+            getNilai3.moveBy(20, 800);
+            
+            const num70 = workspace.newBlock('math_number');
+            num70.setFieldValue('70', 'NUM');
+            num70.initSvg();
+            num70.render();
+            num70.moveBy(150, 800);
+            
+            compare3.getInput('A').connection.connect(getNilai3.outputConnection);
+            compare3.getInput('B').connection.connect(num70.outputConnection);
+            ifBlock.getInput('IF2').connection.connect(compare3.outputConnection);
+            
+            // Print grade C
+            const setGrade3 = workspace.newBlock('variables_set');
+            setGrade3.setFieldValue('grade', 'VAR');
+            setGrade3.initSvg();
+            setGrade3.render();
+            setGrade3.moveBy(300, 720);
+            
+            const textC = workspace.newBlock('text');
+            textC.setFieldValue('C', 'TEXT');
+            textC.initSvg();
+            textC.render();
+            textC.moveBy(300, 820);
+            
+            setGrade3.getInput('VALUE').connection.connect(textC.outputConnection);
+            ifBlock.getInput('DO2').connection.connect(setGrade3.previousConnection);
+            
+            // Else: grade E
+            const setGradeElse = workspace.newBlock('variables_set');
+            setGradeElse.setFieldValue('grade', 'VAR');
+            setGradeElse.initSvg();
+            setGradeElse.render();
+            setGradeElse.moveBy(300, 920);
+            
+            const textE = workspace.newBlock('text');
+            textE.setFieldValue('E', 'TEXT');
+            textE.initSvg();
+            textE.render();
+            textE.moveBy(300, 1020);
+            
+            setGradeElse.getInput('VALUE').connection.connect(textE.outputConnection);
+            ifBlock.getInput('ELSE').connection.connect(setGradeElse.previousConnection);
+          }
+          break;
+          
+        case 7: // If Elif Else Complex
+          {
+            // Set umur
+            const setUmur = workspace.newBlock('variables_set');
+            setUmur.setFieldValue('umur', 'VAR');
+            setUmur.initSvg();
+            setUmur.render();
+            setUmur.moveBy(50, 30);
+            
+            const numUmur = workspace.newBlock('math_number');
+            numUmur.setFieldValue('25', 'NUM');
+            numUmur.initSvg();
+            numUmur.render();
+            numUmur.moveBy(50, 130);
+            setUmur.getInput('VALUE').connection.connect(numUmur.outputConnection);
+            
+            // If-elif-else block dengan 6 kondisi
+            const ifBlock = workspace.newBlock('controls_if');
+            ifBlock.setMutator(new Blockly.Mutator(['controls_if_elseif', 'controls_if_else']));
+            ifBlock.elseifCount_ = 5;
+            ifBlock.elseCount_ = 1;
+            ifBlock.updateShape_();
+            ifBlock.initSvg();
+            ifBlock.render();
+            ifBlock.moveBy(50, 200);
+            
+            // Kondisi 1: umur < 0
+            const compare1 = workspace.newBlock('logic_compare');
+            compare1.setFieldValue('LT', 'OP');
+            compare1.initSvg();
+            compare1.render();
+            compare1.moveBy(50, 350);
+            
+            const getUmur1 = workspace.newBlock('variables_get');
+            getUmur1.setFieldValue('umur', 'VAR');
+            getUmur1.initSvg();
+            getUmur1.render();
+            getUmur1.moveBy(20, 450);
+            
+            const num0 = workspace.newBlock('math_number');
+            num0.setFieldValue('0', 'NUM');
+            num0.initSvg();
+            num0.render();
+            num0.moveBy(150, 450);
+            
+            compare1.getInput('A').connection.connect(getUmur1.outputConnection);
+            compare1.getInput('B').connection.connect(num0.outputConnection);
+            ifBlock.getInput('IF0').connection.connect(compare1.outputConnection);
+            
+            // Set kategori Tidak valid
+            const setKategori1 = workspace.newBlock('variables_set');
+            setKategori1.setFieldValue('kategori', 'VAR');
+            setKategori1.initSvg();
+            setKategori1.render();
+            setKategori1.moveBy(300, 220);
+            
+            const textInvalid = workspace.newBlock('text');
+            textInvalid.setFieldValue('Tidak valid', 'TEXT');
+            textInvalid.initSvg();
+            textInvalid.render();
+            textInvalid.moveBy(300, 320);
+            
+            setKategori1.getInput('VALUE').connection.connect(textInvalid.outputConnection);
+            ifBlock.getInput('DO0').connection.connect(setKategori1.previousConnection);
+            
+            // Kondisi 2: umur < 2
+            const compare2 = workspace.newBlock('logic_compare');
+            compare2.setFieldValue('LT', 'OP');
+            compare2.initSvg();
+            compare2.render();
+            compare2.moveBy(50, 500);
+            
+            const getUmur2 = workspace.newBlock('variables_get');
+            getUmur2.setFieldValue('umur', 'VAR');
+            getUmur2.initSvg();
+            getUmur2.render();
+            getUmur2.moveBy(20, 600);
+            
+            const num2 = workspace.newBlock('math_number');
+            num2.setFieldValue('2', 'NUM');
+            num2.initSvg();
+            num2.render();
+            num2.moveBy(150, 600);
+            
+            compare2.getInput('A').connection.connect(getUmur2.outputConnection);
+            compare2.getInput('B').connection.connect(num2.outputConnection);
+            ifBlock.getInput('IF1').connection.connect(compare2.outputConnection);
+            
+            // Set kategori Bayi
+            const setKategori2 = workspace.newBlock('variables_set');
+            setKategori2.setFieldValue('kategori', 'VAR');
+            setKategori2.initSvg();
+            setKategori2.render();
+            setKategori2.moveBy(300, 520);
+            
+            const textBayi = workspace.newBlock('text');
+            textBayi.setFieldValue('Bayi', 'TEXT');
+            textBayi.initSvg();
+            textBayi.render();
+            textBayi.moveBy(300, 620);
+            
+            setKategori2.getInput('VALUE').connection.connect(textBayi.outputConnection);
+            ifBlock.getInput('DO1').connection.connect(setKategori2.previousConnection);
+            
+            // Kondisi 3: umur < 12
+            const compare3 = workspace.newBlock('logic_compare');
+            compare3.setFieldValue('LT', 'OP');
+            compare3.initSvg();
+            compare3.render();
+            compare3.moveBy(50, 700);
+            
+            const getUmur3 = workspace.newBlock('variables_get');
+            getUmur3.setFieldValue('umur', 'VAR');
+            getUmur3.initSvg();
+            getUmur3.render();
+            getUmur3.moveBy(20, 800);
+            
+            const num12 = workspace.newBlock('math_number');
+            num12.setFieldValue('12', 'NUM');
+            num12.initSvg();
+            num12.render();
+            num12.moveBy(150, 800);
+            
+            compare3.getInput('A').connection.connect(getUmur3.outputConnection);
+            compare3.getInput('B').connection.connect(num12.outputConnection);
+            ifBlock.getInput('IF2').connection.connect(compare3.outputConnection);
+            
+            // Set kategori Anak-anak
+            const setKategori3 = workspace.newBlock('variables_set');
+            setKategori3.setFieldValue('kategori', 'VAR');
+            setKategori3.initSvg();
+            setKategori3.render();
+            setKategori3.moveBy(300, 720);
+            
+            const textAnak = workspace.newBlock('text');
+            textAnak.setFieldValue('Anak-anak', 'TEXT');
+            textAnak.initSvg();
+            textAnak.render();
+            textAnak.moveBy(300, 820);
+            
+            setKategori3.getInput('VALUE').connection.connect(textAnak.outputConnection);
+            ifBlock.getInput('DO2').connection.connect(setKategori3.previousConnection);
+            
+            // Kondisi 4: umur < 18
+            const compare4 = workspace.newBlock('logic_compare');
+            compare4.setFieldValue('LT', 'OP');
+            compare4.initSvg();
+            compare4.render();
+            compare4.moveBy(50, 900);
+            
+            const getUmur4 = workspace.newBlock('variables_get');
+            getUmur4.setFieldValue('umur', 'VAR');
+            getUmur4.initSvg();
+            getUmur4.render();
+            getUmur4.moveBy(20, 1000);
+            
+            const num18 = workspace.newBlock('math_number');
+            num18.setFieldValue('18', 'NUM');
+            num18.initSvg();
+            num18.render();
+            num18.moveBy(150, 1000);
+            
+            compare4.getInput('A').connection.connect(getUmur4.outputConnection);
+            compare4.getInput('B').connection.connect(num18.outputConnection);
+            ifBlock.getInput('IF3').connection.connect(compare4.outputConnection);
+            
+            // Set kategori Remaja
+            const setKategori4 = workspace.newBlock('variables_set');
+            setKategori4.setFieldValue('kategori', 'VAR');
+            setKategori4.initSvg();
+            setKategori4.render();
+            setKategori4.moveBy(300, 920);
+            
+            const textRemaja = workspace.newBlock('text');
+            textRemaja.setFieldValue('Remaja', 'TEXT');
+            textRemaja.initSvg();
+            textRemaja.render();
+            textRemaja.moveBy(300, 1020);
+            
+            setKategori4.getInput('VALUE').connection.connect(textRemaja.outputConnection);
+            ifBlock.getInput('DO3').connection.connect(setKategori4.previousConnection);
+            
+            // Kondisi 5: umur < 30
+            const compare5 = workspace.newBlock('logic_compare');
+            compare5.setFieldValue('LT', 'OP');
+            compare5.initSvg();
+            compare5.render();
+            compare5.moveBy(50, 1100);
+            
+            const getUmur5 = workspace.newBlock('variables_get');
+            getUmur5.setFieldValue('umur', 'VAR');
+            getUmur5.initSvg();
+            getUmur5.render();
+            getUmur5.moveBy(20, 1200);
+            
+            const num30 = workspace.newBlock('math_number');
+            num30.setFieldValue('30', 'NUM');
+            num30.initSvg();
+            num30.render();
+            num30.moveBy(150, 1200);
+            
+            compare5.getInput('A').connection.connect(getUmur5.outputConnection);
+            compare5.getInput('B').connection.connect(num30.outputConnection);
+            ifBlock.getInput('IF4').connection.connect(compare5.outputConnection);
+            
+            // Set kategori Dewasa muda
+            const setKategori5 = workspace.newBlock('variables_set');
+            setKategori5.setFieldValue('kategori', 'VAR');
+            setKategori5.initSvg();
+            setKategori5.render();
+            setKategori5.moveBy(300, 1120);
+            
+            const textMuda = workspace.newBlock('text');
+            textMuda.setFieldValue('Dewasa muda', 'TEXT');
+            textMuda.initSvg();
+            textMuda.render();
+            textMuda.moveBy(300, 1220);
+            
+            setKategori5.getInput('VALUE').connection.connect(textMuda.outputConnection);
+            ifBlock.getInput('DO4').connection.connect(setKategori5.previousConnection);
+            
+            // Kondisi 6: umur < 60
+            const compare6 = workspace.newBlock('logic_compare');
+            compare6.setFieldValue('LT', 'OP');
+            compare6.initSvg();
+            compare6.render();
+            compare6.moveBy(50, 1300);
+            
+            const getUmur6 = workspace.newBlock('variables_get');
+            getUmur6.setFieldValue('umur', 'VAR');
+            getUmur6.initSvg();
+            getUmur6.render();
+            getUmur6.moveBy(20, 1400);
+            
+            const num60 = workspace.newBlock('math_number');
+            num60.setFieldValue('60', 'NUM');
+            num60.initSvg();
+            num60.render();
+            num60.moveBy(150, 1400);
+            
+            compare6.getInput('A').connection.connect(getUmur6.outputConnection);
+            compare6.getInput('B').connection.connect(num60.outputConnection);
+            ifBlock.getInput('IF5').connection.connect(compare6.outputConnection);
+            
+            // Set kategori Dewasa
+            const setKategori6 = workspace.newBlock('variables_set');
+            setKategori6.setFieldValue('kategori', 'VAR');
+            setKategori6.initSvg();
+            setKategori6.render();
+            setKategori6.moveBy(300, 1320);
+            
+            const textDewasa = workspace.newBlock('text');
+            textDewasa.setFieldValue('Dewasa', 'TEXT');
+            textDewasa.initSvg();
+            textDewasa.render();
+            textDewasa.moveBy(300, 1420);
+            
+            setKategori6.getInput('VALUE').connection.connect(textDewasa.outputConnection);
+            ifBlock.getInput('DO5').connection.connect(setKategori6.previousConnection);
+            
+            // Else: Lansia
+            const setKategoriElse = workspace.newBlock('variables_set');
+            setKategoriElse.setFieldValue('kategori', 'VAR');
+            setKategoriElse.initSvg();
+            setKategoriElse.render();
+            setKategoriElse.moveBy(300, 1520);
+            
+            const textLansia = workspace.newBlock('text');
+            textLansia.setFieldValue('Lansia', 'TEXT');
+            textLansia.initSvg();
+            textLansia.render();
+            textLansia.moveBy(300, 1620);
+            
+            setKategoriElse.getInput('VALUE').connection.connect(textLansia.outputConnection);
+            ifBlock.getInput('ELSE').connection.connect(setKategoriElse.previousConnection);
+          }
+          break;
+          
+        case 8: // For
+          {
+            // For loop block
+            const forBlock = workspace.newBlock('controls_for');
+            forBlock.setFieldValue('i', 'VAR');
+            forBlock.initSvg();
+            forBlock.render();
+            forBlock.moveBy(50, 50);
+            
+            const from = workspace.newBlock('math_number');
+            from.setFieldValue('0', 'NUM');
+            from.initSvg();
+            from.render();
+            from.moveBy(50, 180);
+            
+            const to = workspace.newBlock('math_number');
+            to.setFieldValue('5', 'NUM');
+            to.initSvg();
+            to.render();
+            to.moveBy(50, 260);
+            
+            forBlock.getInput('FROM').connection.connect(from.outputConnection);
+            forBlock.getInput('TO').connection.connect(to.outputConnection);
+            
+            // Print di dalam for
+            const printFor = workspace.newBlock('text_print');
+            printFor.initSvg();
+            printFor.render();
+            printFor.moveBy(300, 100);
+            
+            const textJoin = workspace.newBlock('text_join');
+            textJoin.initSvg();
+            textJoin.render();
+            textJoin.moveBy(300, 200);
+            
+            while (textJoin.inputList.length < 2) {
+              textJoin.appendValueInput('ADD' + textJoin.inputList.length);
+            }
+            textJoin.render();
+            
+            const textPerulangan = workspace.newBlock('text');
+            textPerulangan.setFieldValue('Perulangan ke-', 'TEXT');
+            textPerulangan.initSvg();
+            textPerulangan.render();
+            textPerulangan.moveBy(250, 300);
+            
+            const getI = workspace.newBlock('variables_get');
+            getI.setFieldValue('i', 'VAR');
+            getI.initSvg();
+            getI.render();
+            getI.moveBy(380, 300);
+            
+            textJoin.getInput('ADD0').connection.connect(textPerulangan.outputConnection);
+            textJoin.getInput('ADD1').connection.connect(getI.outputConnection);
+            printFor.getInput('TEXT').connection.connect(textJoin.outputConnection);
+            
+            forBlock.getInput('DO').connection.connect(printFor.previousConnection);
+          }
+          break;
+          
+        case 9: // While
+          {
+            // Set count = 1
+            const setCount = workspace.newBlock('variables_set');
+            setCount.setFieldValue('count', 'VAR');
+            setCount.initSvg();
+            setCount.render();
+            setCount.moveBy(50, 30);
+            
+            const num1 = workspace.newBlock('math_number');
+            num1.setFieldValue('1', 'NUM');
+            num1.initSvg();
+            num1.render();
+            num1.moveBy(50, 130);
+            setCount.getInput('VALUE').connection.connect(num1.outputConnection);
+            
+            // While loop
+            const whileBlock = workspace.newBlock('controls_whileUntil');
+            whileBlock.setFieldValue('WHILE', 'MODE');
+            whileBlock.initSvg();
+            whileBlock.render();
+            whileBlock.moveBy(50, 200);
+            
+            const compare = workspace.newBlock('logic_compare');
+            compare.setFieldValue('LTE', 'OP');
+            compare.initSvg();
+            compare.render();
+            compare.moveBy(50, 330);
+            
+            const getCount = workspace.newBlock('variables_get');
+            getCount.setFieldValue('count', 'VAR');
+            getCount.initSvg();
+            getCount.render();
+            getCount.moveBy(20, 430);
+            
+            const num5 = workspace.newBlock('math_number');
+            num5.setFieldValue('5', 'NUM');
+            num5.initSvg();
+            num5.render();
+            num5.moveBy(150, 430);
+            
+            compare.getInput('A').connection.connect(getCount.outputConnection);
+            compare.getInput('B').connection.connect(num5.outputConnection);
+            whileBlock.getInput('BOOL').connection.connect(compare.outputConnection);
+            
+            // Print count
+            const printCount = workspace.newBlock('text_print');
+            printCount.initSvg();
+            printCount.render();
+            printCount.moveBy(300, 250);
+            
+            const textJoin = workspace.newBlock('text_join');
+            textJoin.initSvg();
+            textJoin.render();
+            textJoin.moveBy(300, 350);
+            
+            while (textJoin.inputList.length < 2) {
+              textJoin.appendValueInput('ADD' + textJoin.inputList.length);
+            }
+            textJoin.render();
+            
+            const textCount = workspace.newBlock('text');
+            textCount.setFieldValue('Count: ', 'TEXT');
+            textCount.initSvg();
+            textCount.render();
+            textCount.moveBy(250, 450);
+            
+            const getCount2 = workspace.newBlock('variables_get');
+            getCount2.setFieldValue('count', 'VAR');
+            getCount2.initSvg();
+            getCount2.render();
+            getCount2.moveBy(350, 450);
+            
+            textJoin.getInput('ADD0').connection.connect(textCount.outputConnection);
+            textJoin.getInput('ADD1').connection.connect(getCount2.outputConnection);
+            printCount.getInput('TEXT').connection.connect(textJoin.outputConnection);
+            
+            // Increment count
+            const setCount2 = workspace.newBlock('variables_set');
+            setCount2.setFieldValue('count', 'VAR');
+            setCount2.initSvg();
+            setCount2.render();
+            setCount2.moveBy(300, 500);
+            
+            const mathAdd = workspace.newBlock('math_arithmetic');
+            mathAdd.setFieldValue('ADD', 'OP');
+            mathAdd.initSvg();
+            mathAdd.render();
+            mathAdd.moveBy(300, 600);
+            
+            const getCount3 = workspace.newBlock('variables_get');
+            getCount3.setFieldValue('count', 'VAR');
+            getCount3.initSvg();
+            getCount3.render();
+            getCount3.moveBy(250, 700);
+            
+            const num1Again = workspace.newBlock('math_number');
+            num1Again.setFieldValue('1', 'NUM');
+            num1Again.initSvg();
+            num1Again.render();
+            num1Again.moveBy(380, 700);
+            
+            mathAdd.getInput('A').connection.connect(getCount3.outputConnection);
+            mathAdd.getInput('B').connection.connect(num1Again.outputConnection);
+            setCount2.getInput('VALUE').connection.connect(mathAdd.outputConnection);
+            
+            // Sambungkan blok dalam while
+            printCount.nextConnection.connect(setCount2.previousConnection);
+            whileBlock.getInput('DO').connection.connect(printCount.previousConnection);
+          }
+          break;
+          
+        case 10: // Break
+          {
+            // For loop dengan break
+            const forBlock = workspace.newBlock('controls_for');
+            forBlock.setFieldValue('i', 'VAR');
+            forBlock.initSvg();
+            forBlock.render();
+            forBlock.moveBy(50, 50);
+            
+            const from = workspace.newBlock('math_number');
+            from.setFieldValue('0', 'NUM');
+            from.initSvg();
+            from.render();
+            from.moveBy(50, 180);
+            
+            const to = workspace.newBlock('math_number');
+            to.setFieldValue('10', 'NUM');
+            to.initSvg();
+            to.render();
+            to.moveBy(50, 260);
+            
+            forBlock.getInput('FROM').connection.connect(from.outputConnection);
+            forBlock.getInput('TO').connection.connect(to.outputConnection);
+            
+            // If di dalam for
+            const ifBlock = workspace.newBlock('controls_if');
+            ifBlock.initSvg();
+            ifBlock.render();
+            ifBlock.moveBy(300, 100);
+            
+            const compare = workspace.newBlock('logic_compare');
+            compare.setFieldValue('EQ', 'OP');
+            compare.initSvg();
+            compare.render();
+            compare.moveBy(300, 230);
+            
+            const getI = workspace.newBlock('variables_get');
+            getI.setFieldValue('i', 'VAR');
+            getI.initSvg();
+            getI.render();
+            getI.moveBy(270, 330);
+            
+            const num5 = workspace.newBlock('math_number');
+            num5.setFieldValue('5', 'NUM');
+            num5.initSvg();
+            num5.render();
+            num5.moveBy(400, 330);
+            
+            compare.getInput('A').connection.connect(getI.outputConnection);
+            compare.getInput('B').connection.connect(num5.outputConnection);
+            ifBlock.getInput('IF0').connection.connect(compare.outputConnection);
+            
+            // Break statement
+            const breakBlock = workspace.newBlock('controls_flow_statements');
+            breakBlock.setFieldValue('BREAK', 'FLOW');
+            breakBlock.initSvg();
+            breakBlock.render();
+            breakBlock.moveBy(550, 150);
+            
+            ifBlock.getInput('DO0').connection.connect(breakBlock.previousConnection);
+            
+            // Print i
+            const printI = workspace.newBlock('text_print');
+            printI.initSvg();
+            printI.render();
+            printI.moveBy(300, 400);
+            
+            const textJoin = workspace.newBlock('text_join');
+            textJoin.initSvg();
+            textJoin.render();
+            textJoin.moveBy(300, 500);
+            
+            while (textJoin.inputList.length < 2) {
+              textJoin.appendValueInput('ADD' + textJoin.inputList.length);
+            }
+            textJoin.render();
+            
+            const textI = workspace.newBlock('text');
+            textI.setFieldValue('i = ', 'TEXT');
+            textI.initSvg();
+            textI.render();
+            textI.moveBy(250, 600);
+            
+            const getI2 = workspace.newBlock('variables_get');
+            getI2.setFieldValue('i', 'VAR');
+            getI2.initSvg();
+            getI2.render();
+            getI2.moveBy(350, 600);
+            
+            textJoin.getInput('ADD0').connection.connect(textI.outputConnection);
+            textJoin.getInput('ADD1').connection.connect(getI2.outputConnection);
+            printI.getInput('TEXT').connection.connect(textJoin.outputConnection);
+            
+            // Sambungkan blok dalam for
+            ifBlock.nextConnection.connect(printI.previousConnection);
+            forBlock.getInput('DO').connection.connect(ifBlock.previousConnection);
+          }
+          break;
+          
+        case 11: // Continue
+          {
+            // For loop dengan continue
+            const forBlock = workspace.newBlock('controls_for');
+            forBlock.setFieldValue('i', 'VAR');
+            forBlock.initSvg();
+            forBlock.render();
+            forBlock.moveBy(50, 50);
+            
+            const from = workspace.newBlock('math_number');
+            from.setFieldValue('0', 'NUM');
+            from.initSvg();
+            from.render();
+            from.moveBy(50, 180);
+            
+            const to = workspace.newBlock('math_number');
+            to.setFieldValue('6', 'NUM');
+            to.initSvg();
+            to.render();
+            to.moveBy(50, 260);
+            
+            forBlock.getInput('FROM').connection.connect(from.outputConnection);
+            forBlock.getInput('TO').connection.connect(to.outputConnection);
+            
+            // If di dalam for untuk continue
+            const ifBlock = workspace.newBlock('controls_if');
+            ifBlock.initSvg();
+            ifBlock.render();
+            ifBlock.moveBy(300, 100);
+            
+            const compare = workspace.newBlock('logic_compare');
+            compare.setFieldValue('EQ', 'OP');
+            compare.initSvg();
+            compare.render();
+            compare.moveBy(300, 230);
+            
+            const getI = workspace.newBlock('variables_get');
+            getI.setFieldValue('i', 'VAR');
+            getI.initSvg();
+            getI.render();
+            getI.moveBy(270, 330);
+            
+            const num3 = workspace.newBlock('math_number');
+            num3.setFieldValue('3', 'NUM');
+            num3.initSvg();
+            num3.render();
+            num3.moveBy(400, 330);
+            
+            compare.getInput('A').connection.connect(getI.outputConnection);
+            compare.getInput('B').connection.connect(num3.outputConnection);
+            ifBlock.getInput('IF0').connection.connect(compare.outputConnection);
+            
+            // Continue statement
+            const continueBlock = workspace.newBlock('controls_flow_statements');
+            continueBlock.setFieldValue('CONTINUE', 'FLOW');
+            continueBlock.initSvg();
+            continueBlock.render();
+            continueBlock.moveBy(550, 150);
+            
+            ifBlock.getInput('DO0').connection.connect(continueBlock.previousConnection);
+            
+            // Print i (hanya untuk yang tidak dicontinue)
+            const printI = workspace.newBlock('text_print');
+            printI.initSvg();
+            printI.render();
+            printI.moveBy(300, 400);
+            
+            const textJoin = workspace.newBlock('text_join');
+            textJoin.initSvg();
+            textJoin.render();
+            textJoin.moveBy(300, 500);
+            
+            while (textJoin.inputList.length < 2) {
+              textJoin.appendValueInput('ADD' + textJoin.inputList.length);
+            }
+            textJoin.render();
+            
+            const textI = workspace.newBlock('text');
+            textI.setFieldValue('i = ', 'TEXT');
+            textI.initSvg();
+            textI.render();
+            textI.moveBy(250, 600);
+            
+            const getI2 = workspace.newBlock('variables_get');
+            getI2.setFieldValue('i', 'VAR');
+            getI2.initSvg();
+            getI2.render();
+            getI2.moveBy(350, 600);
+            
+            textJoin.getInput('ADD0').connection.connect(textI.outputConnection);
+            textJoin.getInput('ADD1').connection.connect(getI2.outputConnection);
+            printI.getInput('TEXT').connection.connect(textJoin.outputConnection);
+            
+            // Sambungkan blok dalam for
+            ifBlock.nextConnection.connect(printI.previousConnection);
+            forBlock.getInput('DO').connection.connect(ifBlock.previousConnection);
+          }
+          break;
+          
+        case 12: // Calculate Triangle Area
+          {
+            // Set alas dan tinggi
+            const setAlas = workspace.newBlock('variables_set');
+            setAlas.setFieldValue('alas', 'VAR');
+            setAlas.initSvg();
+            setAlas.render();
+            setAlas.moveBy(50, 30);
+            
+            const numAlas = workspace.newBlock('math_number');
+            numAlas.setFieldValue('10', 'NUM');
+            numAlas.initSvg();
+            numAlas.render();
+            numAlas.moveBy(50, 130);
+            setAlas.getInput('VALUE').connection.connect(numAlas.outputConnection);
+            
+            const setTinggi = workspace.newBlock('variables_set');
+            setTinggi.setFieldValue('tinggi', 'VAR');
+            setTinggi.initSvg();
+            setTinggi.render();
+            setTinggi.moveBy(250, 30);
+            
+            const numTinggi = workspace.newBlock('math_number');
+            numTinggi.setFieldValue('8', 'NUM');
+            numTinggi.initSvg();
+            numTinggi.render();
+            numTinggi.moveBy(250, 130);
+            setTinggi.getInput('VALUE').connection.connect(numTinggi.outputConnection);
+            
+            // Hitung luas = 0.5 * alas * tinggi
+            const setLuas = workspace.newBlock('variables_set');
+            setLuas.setFieldValue('luas', 'VAR');
+            setLuas.initSvg();
+            setLuas.render();
+            setLuas.moveBy(150, 200);
+            
+            const mathMul1 = workspace.newBlock('math_arithmetic');
+            mathMul1.setFieldValue('MULTIPLY', 'OP');
+            mathMul1.initSvg();
+            mathMul1.render();
+            mathMul1.moveBy(150, 300);
+            
+            const getAlas = workspace.newBlock('variables_get');
+            getAlas.setFieldValue('alas', 'VAR');
+            getAlas.initSvg();
+            getAlas.render();
+            getAlas.moveBy(80, 400);
+            
+            const getTinggi = workspace.newBlock('variables_get');
+            getTinggi.setFieldValue('tinggi', 'VAR');
+            getTinggi.initSvg();
+            getTinggi.render();
+            getTinggi.moveBy(220, 400);
+            
+            mathMul1.getInput('A').connection.connect(getAlas.outputConnection);
+            mathMul1.getInput('B').connection.connect(getTinggi.outputConnection);
+            
+            const mathMul2 = workspace.newBlock('math_arithmetic');
+            mathMul2.setFieldValue('MULTIPLY', 'OP');
+            mathMul2.initSvg();
+            mathMul2.render();
+            mathMul2.moveBy(150, 480);
+            
+            const numHalf = workspace.newBlock('math_number');
+            numHalf.setFieldValue('0.5', 'NUM');
+            numHalf.initSvg();
+            numHalf.render();
+            numHalf.moveBy(80, 580);
+            
+            mathMul2.getInput('A').connection.connect(numHalf.outputConnection);
+            mathMul2.getInput('B').connection.connect(mathMul1.outputConnection);
+            setLuas.getInput('VALUE').connection.connect(mathMul2.outputConnection);
+            
+            // Print hasil
+            const printLuas = workspace.newBlock('text_print');
+            printLuas.initSvg();
+            printLuas.render();
+            printLuas.moveBy(150, 650);
+            
+            const textJoin = workspace.newBlock('text_join');
+            textJoin.initSvg();
+            textJoin.render();
+            textJoin.moveBy(150, 750);
+            
+            while (textJoin.inputList.length < 4) {
+              textJoin.appendValueInput('ADD' + textJoin.inputList.length);
+            }
+            textJoin.render();
+            
+            const textAlas = workspace.newBlock('text');
+            textAlas.setFieldValue('Alas: ', 'TEXT');
+            textAlas.initSvg();
+            textAlas.render();
+            textAlas.moveBy(50, 850);
+            
+            const getAlas2 = workspace.newBlock('variables_get');
+            getAlas2.setFieldValue('alas', 'VAR');
+            getAlas2.initSvg();
+            getAlas2.render();
+            getAlas2.moveBy(120, 850);
+            
+            const textKoma = workspace.newBlock('text');
+            textKoma.setFieldValue(', Tinggi: ', 'TEXT');
+            textKoma.initSvg();
+            textKoma.render();
+            textKoma.moveBy(220, 850);
+            
+            const getTinggi2 = workspace.newBlock('variables_get');
+            getTinggi2.setFieldValue('tinggi', 'VAR');
+            getTinggi2.initSvg();
+            getTinggi2.render();
+            getTinggi2.moveBy(320, 850);
+            
+            const textHasil = workspace.newBlock('text');
+            textHasil.setFieldValue(' - Luas: ', 'TEXT');
+            textHasil.initSvg();
+            textHasil.render();
+            textHasil.moveBy(420, 850);
+            
+            const getLuas = workspace.newBlock('variables_get');
+            getLuas.setFieldValue('luas', 'VAR');
+            getLuas.initSvg();
+            getLuas.render();
+            getLuas.moveBy(520, 850);
+            
+            textJoin.getInput('ADD0').connection.connect(textAlas.outputConnection);
+            textJoin.getInput('ADD1').connection.connect(getAlas2.outputConnection);
+            textJoin.getInput('ADD2').connection.connect(textKoma.outputConnection);
+            textJoin.getInput('ADD3').connection.connect(getTinggi2.outputConnection);
+            if (textJoin.inputList.length > 4) {
+              textJoin.getInput('ADD4').connection.connect(textHasil.outputConnection);
+              textJoin.getInput('ADD5').connection.connect(getLuas.outputConnection);
+            }
+            
+            printLuas.getInput('TEXT').connection.connect(textJoin.outputConnection);
+            setLuas.nextConnection.connect(printLuas.previousConnection);
+          }
+          break;
+          
+        case 13: // List
+          {
+            // Buat list buah
+            const listBlock = workspace.newBlock('lists_create_with');
+            listBlock.initSvg();
+            listBlock.render();
+            listBlock.moveBy(50, 50);
+            
+            // Tambahkan item list
+            for (let i = 0; i < 3; i++) {
+              if (listBlock.inputList.length <= i) {
+                listBlock.appendValueInput('ADD' + i);
+              }
+            }
+            listBlock.render();
+            
+            const item1 = workspace.newBlock('text');
+            item1.setFieldValue('apel', 'TEXT');
+            item1.initSvg();
+            item1.render();
+            item1.moveBy(20, 150);
+            
+            const item2 = workspace.newBlock('text');
+            item2.setFieldValue('mangga', 'TEXT');
+            item2.initSvg();
+            item2.render();
+            item2.moveBy(120, 150);
+            
+            const item3 = workspace.newBlock('text');
+            item3.setFieldValue('jeruk', 'TEXT');
+            item3.initSvg();
+            item3.render();
+            item3.moveBy(220, 150);
+            
+            listBlock.getInput('ADD0').connection.connect(item1.outputConnection);
+            listBlock.getInput('ADD1').connection.connect(item2.outputConnection);
+            listBlock.getInput('ADD2').connection.connect(item3.outputConnection);
+            
+            // Set variabel buah
+            const setBuah = workspace.newBlock('variables_set');
+            setBuah.setFieldValue('buah', 'VAR');
+            setBuah.initSvg();
+            setBuah.render();
+            setBuah.moveBy(50, 250);
+            
+            setBuah.getInput('VALUE').connection.connect(listBlock.outputConnection);
+            
+            // Print list awal
+            const printAwal = workspace.newBlock('text_print');
+            printAwal.initSvg();
+            printAwal.render();
+            printAwal.moveBy(50, 350);
+            
+            const textJoin1 = workspace.newBlock('text_join');
+            textJoin1.initSvg();
+            textJoin1.render();
+            textJoin1.moveBy(50, 450);
+            
+            while (textJoin1.inputList.length < 2) {
+              textJoin1.appendValueInput('ADD' + textJoin1.inputList.length);
+            }
+            textJoin1.render();
+            
+            const textAwal = workspace.newBlock('text');
+            textAwal.setFieldValue('List awal: ', 'TEXT');
+            textAwal.initSvg();
+            textAwal.render();
+            textAwal.moveBy(20, 550);
+            
+            const getBuah1 = workspace.newBlock('variables_get');
+            getBuah1.setFieldValue('buah', 'VAR');
+            getBuah1.initSvg();
+            getBuah1.render();
+            getBuah1.moveBy(120, 550);
+            
+            textJoin1.getInput('ADD0').connection.connect(textAwal.outputConnection);
+            textJoin1.getInput('ADD1').connection.connect(getBuah1.outputConnection);
+            printAwal.getInput('TEXT').connection.connect(textJoin1.outputConnection);
+            
+            // Append pisang
+            const appendBlock = workspace.newBlock('lists_setIndex');
+            appendBlock.setFieldValue('INSERT', 'MODE');
+            appendBlock.setFieldValue('LAST', 'WHERE');
+            appendBlock.initSvg();
+            appendBlock.render();
+            appendBlock.moveBy(50, 650);
+            
+            const getBuah2 = workspace.newBlock('variables_get');
+            getBuah2.setFieldValue('buah', 'VAR');
+            getBuah2.initSvg();
+            getBuah2.render();
+            getBuah2.moveBy(50, 750);
+            
+            const textPisang = workspace.newBlock('text');
+            textPisang.setFieldValue('pisang', 'TEXT');
+            textPisang.initSvg();
+            textPisang.render();
+            textPisang.moveBy(50, 850);
+            
+            appendBlock.getInput('LIST').connection.connect(getBuah2.outputConnection);
+            appendBlock.getInput('TO').connection.connect(textPisang.outputConnection);
+            
+            // Print setelah append
+            const printAppend = workspace.newBlock('text_print');
+            printAppend.initSvg();
+            printAppend.render();
+            printAppend.moveBy(350, 650);
+            
+            const textJoin2 = workspace.newBlock('text_join');
+            textJoin2.initSvg();
+            textJoin2.render();
+            textJoin2.moveBy(350, 750);
+            
+            while (textJoin2.inputList.length < 2) {
+              textJoin2.appendValueInput('ADD' + textJoin2.inputList.length);
+            }
+            textJoin2.render();
+            
+            const textAppend = workspace.newBlock('text');
+            textAppend.setFieldValue('Setelah append: ', 'TEXT');
+            textAppend.initSvg();
+            textAppend.render();
+            textAppend.moveBy(320, 850);
+            
+            const getBuah3 = workspace.newBlock('variables_get');
+            getBuah3.setFieldValue('buah', 'VAR');
+            getBuah3.initSvg();
+            getBuah3.render();
+            getBuah3.moveBy(440, 850);
+            
+            textJoin2.getInput('ADD0').connection.connect(textAppend.outputConnection);
+            textJoin2.getInput('ADD1').connection.connect(getBuah3.outputConnection);
+            printAppend.getInput('TEXT').connection.connect(textJoin2.outputConnection);
+            
+            // Sambungkan blok
+            setBuah.nextConnection.connect(printAwal.previousConnection);
+            printAwal.nextConnection.connect(appendBlock.previousConnection);
+            appendBlock.nextConnection.connect(printAppend.previousConnection);
+          }
+          break;
+          
+        case 14: // Calculate Sum of Even Numbers in List
+          {
+            // Buat list angka
+            const listBlock = workspace.newBlock('lists_create_with');
+            listBlock.initSvg();
+            listBlock.render();
+            listBlock.moveBy(50, 30);
+            
+            // Tambahkan 10 item
+            for (let i = 0; i < 10; i++) {
+              if (listBlock.inputList.length <= i) {
+                listBlock.appendValueInput('ADD' + i);
+              }
+            }
+            listBlock.render();
+            
+            const positions = [20, 100, 180, 260, 340, 420, 500, 580, 660, 740];
+            const values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+            
+            for (let i = 0; i < 10; i++) {
+              const num = workspace.newBlock('math_number');
+              num.setFieldValue(values[i].toString(), 'NUM');
+              num.initSvg();
+              num.render();
+              num.moveBy(positions[i], 130);
+              listBlock.getInput('ADD' + i).connection.connect(num.outputConnection);
+            }
+            
+            // Set variabel angka
+            const setAngka = workspace.newBlock('variables_set');
+            setAngka.setFieldValue('angka', 'VAR');
+            setAngka.initSvg();
+            setAngka.render();
+            setAngka.moveBy(50, 230);
+            setAngka.getInput('VALUE').connection.connect(listBlock.outputConnection);
+            
+            // Set jumlah_genap = 0
+            const setJumlah = workspace.newBlock('variables_set');
+            setJumlah.setFieldValue('jumlah_genap', 'VAR');
+            setJumlah.initSvg();
+            setJumlah.render();
+            setJumlah.moveBy(300, 230);
+            
+            const num0 = workspace.newBlock('math_number');
+            num0.setFieldValue('0', 'NUM');
+            num0.initSvg();
+            num0.render();
+            num0.moveBy(300, 330);
+            setJumlah.getInput('VALUE').connection.connect(num0.outputConnection);
+            
+            // For each loop (menggunakan for loop dengan list)
+            const forEachBlock = workspace.newBlock('controls_forEach');
+            forEachBlock.setFieldValue('num', 'VAR');
+            forEachBlock.initSvg();
+            forEachBlock.render();
+            forEachBlock.moveBy(50, 430);
+            
+            const getAngka = workspace.newBlock('variables_get');
+            getAngka.setFieldValue('angka', 'VAR');
+            getAngka.initSvg();
+            getAngka.render();
+            getAngka.moveBy(50, 560);
+            forEachBlock.getInput('LIST').connection.connect(getAngka.outputConnection);
+            
+            // If untuk cek genap
+            const ifBlock = workspace.newBlock('controls_if');
+            ifBlock.initSvg();
+            ifBlock.render();
+            ifBlock.moveBy(300, 480);
+            
+            const mathMod = workspace.newBlock('math_modulo');
+            mathMod.initSvg();
+            mathMod.render();
+            mathMod.moveBy(300, 610);
+            
+            const getNum = workspace.newBlock('variables_get');
+            getNum.setFieldValue('num', 'VAR');
+            getNum.initSvg();
+            getNum.render();
+            getNum.moveBy(250, 710);
+            
+            const num2 = workspace.newBlock('math_number');
+            num2.setFieldValue('2', 'NUM');
+            num2.initSvg();
+            num2.render();
+            num2.moveBy(380, 710);
+            
+            mathMod.getInput('DIVIDEND').connection.connect(getNum.outputConnection);
+            mathMod.getInput('DIVISOR').connection.connect(num2.outputConnection);
+            
+            const compare = workspace.newBlock('logic_compare');
+            compare.setFieldValue('EQ', 'OP');
+            compare.initSvg();
+            compare.render();
+            compare.moveBy(300, 800);
+            
+            const num0Again = workspace.newBlock('math_number');
+            num0Again.setFieldValue('0', 'NUM');
+            num0Again.initSvg();
+            num0Again.render();
+            num0Again.moveBy(300, 900);
+            
+            compare.getInput('A').connection.connect(mathMod.outputConnection);
+            compare.getInput('B').connection.connect(num0Again.outputConnection);
+            ifBlock.getInput('IF0').connection.connect(compare.outputConnection);
+            
+            // Tambah ke jumlah_genap
+            const setJumlah2 = workspace.newBlock('variables_set');
+            setJumlah2.setFieldValue('jumlah_genap', 'VAR');
+            setJumlah2.initSvg();
+            setJumlah2.render();
+            setJumlah2.moveBy(550, 530);
+            
+            const mathAdd = workspace.newBlock('math_arithmetic');
+            mathAdd.setFieldValue('ADD', 'OP');
+            mathAdd.initSvg();
+            mathAdd.render();
+            mathAdd.moveBy(550, 630);
+            
+            const getJumlah = workspace.newBlock('variables_get');
+            getJumlah.setFieldValue('jumlah_genap', 'VAR');
+            getJumlah.initSvg();
+            getJumlah.render();
+            getJumlah.moveBy(500, 730);
+            
+            const getNum2 = workspace.newBlock('variables_get');
+            getNum2.setFieldValue('num', 'VAR');
+            getNum2.initSvg();
+            getNum2.render();
+            getNum2.moveBy(630, 730);
+            
+            mathAdd.getInput('A').connection.connect(getJumlah.outputConnection);
+            mathAdd.getInput('B').connection.connect(getNum2.outputConnection);
+            setJumlah2.getInput('VALUE').connection.connect(mathAdd.outputConnection);
+            
+            ifBlock.getInput('DO0').connection.connect(setJumlah2.previousConnection);
+            forEachBlock.getInput('DO').connection.connect(ifBlock.previousConnection);
+            
+            // Print hasil
+            const printHasil = workspace.newBlock('text_print');
+            printHasil.initSvg();
+            printHasil.render();
+            printHasil.moveBy(50, 1000);
+            
+            const textJoin = workspace.newBlock('text_join');
+            textJoin.initSvg();
+            textJoin.render();
+            textJoin.moveBy(50, 1100);
+            
+            while (textJoin.inputList.length < 2) {
+              textJoin.appendValueInput('ADD' + textJoin.inputList.length);
+            }
+            textJoin.render();
+            
+            const textJumlah = workspace.newBlock('text');
+            textJumlah.setFieldValue('Jumlah bilangan genap: ', 'TEXT');
+            textJumlah.initSvg();
+            textJumlah.render();
+            textJumlah.moveBy(20, 1200);
+            
+            const getJumlah2 = workspace.newBlock('variables_get');
+            getJumlah2.setFieldValue('jumlah_genap', 'VAR');
+            getJumlah2.initSvg();
+            getJumlah2.render();
+            getJumlah2.moveBy(200, 1200);
+            
+            textJoin.getInput('ADD0').connection.connect(textJumlah.outputConnection);
+            textJoin.getInput('ADD1').connection.connect(getJumlah2.outputConnection);
+            printHasil.getInput('TEXT').connection.connect(textJoin.outputConnection);
+            
+            // Sambungkan blok
+            setAngka.nextConnection.connect(setJumlah.previousConnection);
+            setJumlah.nextConnection.connect(forEachBlock.previousConnection);
+            forEachBlock.nextConnection.connect(printHasil.previousConnection);
+          }
+          break;
+          
+        case 15: // Set
+          {
+            // Buat set A
+            const listA = workspace.newBlock('lists_create_with');
+            listA.initSvg();
+            listA.render();
+            listA.moveBy(50, 30);
+            
+            for (let i = 0; i < 5; i++) {
+              if (listA.inputList.length <= i) {
+                listA.appendValueInput('ADD' + i);
+              }
+            }
+            listA.render();
+            
+            const valuesA = [1, 2, 3, 4, 5];
+            for (let i = 0; i < 5; i++) {
+              const num = workspace.newBlock('math_number');
+              num.setFieldValue(valuesA[i].toString(), 'NUM');
+              num.initSvg();
+              num.render();
+              num.moveBy(20 + i * 80, 130);
+              listA.getInput('ADD' + i).connection.connect(num.outputConnection);
+            }
+            
+            const setA = workspace.newBlock('variables_set');
+            setA.setFieldValue('set_a', 'VAR');
+            setA.initSvg();
+            setA.render();
+            setA.moveBy(50, 230);
+            setA.getInput('VALUE').connection.connect(listA.outputConnection);
+            
+            // Buat set B
+            const listB = workspace.newBlock('lists_create_with');
+            listB.initSvg();
+            listB.render();
+            listB.moveBy(400, 30);
+            
+            for (let i = 0; i < 5; i++) {
+              if (listB.inputList.length <= i) {
+                listB.appendValueInput('ADD' + i);
+              }
+            }
+            listB.render();
+            
+            const valuesB = [4, 5, 6, 7, 8];
+            for (let i = 0; i < 5; i++) {
+              const num = workspace.newBlock('math_number');
+              num.setFieldValue(valuesB[i].toString(), 'NUM');
+              num.initSvg();
+              num.render();
+              num.moveBy(400 + i * 80, 130);
+              listB.getInput('ADD' + i).connection.connect(num.outputConnection);
+            }
+            
+            const setB = workspace.newBlock('variables_set');
+            setB.setFieldValue('set_b', 'VAR');
+            setB.initSvg();
+            setB.render();
+            setB.moveBy(400, 230);
+            setB.getInput('VALUE').connection.connect(listB.outputConnection);
+            
+            // Print set A dan B
+            const printA = workspace.newBlock('text_print');
+            printA.initSvg();
+            printA.render();
+            printA.moveBy(50, 330);
+            
+            const textJoinA = workspace.newBlock('text_join');
+            textJoinA.initSvg();
+            textJoinA.render();
+            textJoinA.moveBy(50, 430);
+            
+            while (textJoinA.inputList.length < 2) {
+              textJoinA.appendValueInput('ADD' + textJoinA.inputList.length);
+            }
+            textJoinA.render();
+            
+            const textA = workspace.newBlock('text');
+            textA.setFieldValue('Set A: ', 'TEXT');
+            textA.initSvg();
+            textA.render();
+            textA.moveBy(20, 530);
+            
+            const getA1 = workspace.newBlock('variables_get');
+            getA1.setFieldValue('set_a', 'VAR');
+            getA1.initSvg();
+            getA1.render();
+            getA1.moveBy(120, 530);
+            
+            textJoinA.getInput('ADD0').connection.connect(textA.outputConnection);
+            textJoinA.getInput('ADD1').connection.connect(getA1.outputConnection);
+            printA.getInput('TEXT').connection.connect(textJoinA.outputConnection);
+            
+            const printB = workspace.newBlock('text_print');
+            printB.initSvg();
+            printB.render();
+            printB.moveBy(400, 330);
+            
+            const textJoinB = workspace.newBlock('text_join');
+            textJoinB.initSvg();
+            textJoinB.render();
+            textJoinB.moveBy(400, 430);
+            
+            while (textJoinB.inputList.length < 2) {
+              textJoinB.appendValueInput('ADD' + textJoinB.inputList.length);
+            }
+            textJoinB.render();
+            
+            const textB = workspace.newBlock('text');
+            textB.setFieldValue('Set B: ', 'TEXT');
+            textB.initSvg();
+            textB.render();
+            textB.moveBy(370, 530);
+            
+            const getB1 = workspace.newBlock('variables_get');
+            getB1.setFieldValue('set_b', 'VAR');
+            getB1.initSvg();
+            getB1.render();
+            getB1.moveBy(470, 530);
+            
+            textJoinB.getInput('ADD0').connection.connect(textB.outputConnection);
+            textJoinB.getInput('ADD1').connection.connect(getB1.outputConnection);
+            printB.getInput('TEXT').connection.connect(textJoinB.outputConnection);
+            
+            // Union
+            const setUnion = workspace.newBlock('variables_set');
+            setUnion.setFieldValue('union', 'VAR');
+            setUnion.initSvg();
+            setUnion.render();
+            setUnion.moveBy(50, 630);
+            
+            const listUnion = workspace.newBlock('lists_create_with');
+            listUnion.initSvg();
+            listUnion.render();
+            listUnion.moveBy(50, 730);
+            
+            // Untuk union kita gunakan text join sederhana
+            const textUnion = workspace.newBlock('text');
+            textUnion.setFieldValue('{1,2,3,4,5,6,7,8}', 'TEXT');
+            textUnion.initSvg();
+            textUnion.render();
+            textUnion.moveBy(50, 830);
+            
+            setUnion.getInput('VALUE').connection.connect(textUnion.outputConnection);
+            
+            // Print union
+            const printUnion = workspace.newBlock('text_print');
+            printUnion.initSvg();
+            printUnion.render();
+            printUnion.moveBy(50, 930);
+            
+            const textJoinUnion = workspace.newBlock('text_join');
+            textJoinUnion.initSvg();
+            textJoinUnion.render();
+            textJoinUnion.moveBy(50, 1030);
+            
+            while (textJoinUnion.inputList.length < 2) {
+              textJoinUnion.appendValueInput('ADD' + textJoinUnion.inputList.length);
+            }
+            textJoinUnion.render();
+            
+            const textUnionLabel = workspace.newBlock('text');
+            textUnionLabel.setFieldValue('Union A | B: ', 'TEXT');
+            textUnionLabel.initSvg();
+            textUnionLabel.render();
+            textUnionLabel.moveBy(20, 1130);
+            
+            const getUnion = workspace.newBlock('variables_get');
+            getUnion.setFieldValue('union', 'VAR');
+            getUnion.initSvg();
+            getUnion.render();
+            getUnion.moveBy(140, 1130);
+            
+            textJoinUnion.getInput('ADD0').connection.connect(textUnionLabel.outputConnection);
+            textJoinUnion.getInput('ADD1').connection.connect(getUnion.outputConnection);
+            printUnion.getInput('TEXT').connection.connect(textJoinUnion.outputConnection);
+            
+            // Sambungkan blok
+            setA.nextConnection.connect(setB.previousConnection);
+            setB.nextConnection.connect(printA.previousConnection);
+            printA.nextConnection.connect(printB.previousConnection);
+            printB.nextConnection.connect(setUnion.previousConnection);
+            setUnion.nextConnection.connect(printUnion.previousConnection);
+          }
+          break;
+      }
+      
+      showToast(`Halaman ${page}: ${pythonTopics[page-1].name}`);
+      
+    } catch (e) {
+      console.warn('Error loading page:', e);
+      // Fallback ke print sederhana
+      const printBlock = workspace.newBlock('text_print');
+      printBlock.initSvg();
+      printBlock.render();
+      printBlock.moveBy(80, 60);
+      
+      const textBlock = workspace.newBlock('text');
+      textBlock.setFieldValue(`Topik ${page}: ${pythonTopics[page-1].name} (LOC: ${pythonTopics[page-1].loc})`, 'TEXT');
+      textBlock.initSvg();
+      textBlock.render();
+      textBlock.moveBy(80, 160);
+      
+      printBlock.getInput('TEXT').connection.connect(textBlock.outputConnection);
+    }
+
+    if (currentMblockTab === 'python' && currentMode === 'block') {
+      const code = Blockly.Python.workspaceToCode(workspace);
+      codeArea.textContent = code || '# (kosong)';
+      updateCodeLineCount();
+    }
+    updateStats();
+  }
+
+  function updatePageDisplay() {
+    pageDisplay.textContent = `${currentPage} / ${totalPages}`;
+  }
+
+  function goToPrevPage() {
+    if (currentPage > 1) {
+      currentPage--;
+      updatePageDisplay();
+      loadPage(currentPage);
+    } else {
+      showToast('Sudah di halaman pertama', true);
+    }
+  }
+
+  function goToNextPage() {
+    if (currentPage < totalPages) {
+      currentPage++;
+      updatePageDisplay();
+      loadPage(currentPage);
+    } else {
+      showToast('Sudah di halaman terakhir', true);
+    }
+  }
+
+  // Inisialisasi Pyodide
+  async function initPyodide() {
+    try {
+      statusDot.className = 'status-dot loading';
+      statusText.textContent = 'Memuat Pyodide...';
+      pyodide = await loadPyodide();
+      pyodide.runPython(`
+import sys
+from io import StringIO
+sys.stdout = StringIO()
+sys.stderr = StringIO()
+      `);
+      statusDot.className = 'status-dot ready';
+      statusText.textContent = 'Python siap';
+      pyodideReady = true;
+      executeBtn.disabled = false;
+      showToast('Python ready');
+    } catch (e) {
+      statusDot.className = 'status-dot ready';
+      statusDot.style.background = '#ff5555';
+      statusText.textContent = 'Gagal muat';
+      showToast('Pyodide error', true);
+    }
+  }
+
+  function getPythonOutput() {
+    if (!pyodideReady) return '';
+    try {
+      return pyodide.runPython(`
+result = sys.stdout.getvalue() + sys.stderr.getvalue()
+sys.stdout.truncate(0); sys.stdout.seek(0)
+sys.stderr.truncate(0); sys.stderr.seek(0)
+result if result else "Program selesai (tanpa output)"
+      `);
+    } catch (e) {
+      return 'Output error';
+    }
+  }
+
+  // Fungsi untuk menghentikan eksekusi
+  window.stopExecution = function() {
+    if (isRunning) {
+      stopExecutionFlag = true;
+      statusDot.className = 'status-dot ready';
+      executionStatus.textContent = 'Dihentikan';
+      executionStatus.style.color = '#ff5555';
+      showToast('Eksekusi dihentikan', false, true);
+    }
+  };
+
+  window.executeCode = async function() {
+    if (!pyodideReady) {
+      showToast('Python belum siap', true);
+      return;
+    }
+    
+    if (isRunning) {
+      showToast('Program sedang berjalan', true);
+      return;
+    }
+    
+    const startTime = performance.now();
+    const code = codeArea.textContent;
+    
+    if (!code.trim()) {
+      outputArea.textContent = 'Tidak ada kode.';
+      executionTime.textContent = '';
+      return;
+    }
+
+    switchMblockTab('python');
+    
+    outputArea.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Menjalankan...';
+    executeBtn.disabled = true;
+    stopBtn.disabled = false;
+    isRunning = true;
+    stopExecutionFlag = false;
+    statusDot.className = 'status-dot running';
+    executionStatus.textContent = '⏳ Running...';
+    executionStatus.style.color = '#5a8cff';
+
+    try {
+      pyodide.runPython(`
+sys.stdout.truncate(0); sys.stdout.seek(0)
+sys.stderr.truncate(0); sys.stderr.seek(0)
+      `);
+      
+      // Jalankan kode dengan mekanisme stop
+      const runPromise = pyodide.runPythonAsync(code);
+      
+      // Race condition antara runPromise dan stop button
+      const result = await Promise.race([
+        runPromise,
+        new Promise((_, reject) => {
+          const checkStop = setInterval(() => {
+            if (stopExecutionFlag) {
+              clearInterval(checkStop);
+              reject(new Error('Eksekusi dihentikan oleh pengguna'));
+            }
+          }, 100);
+        })
+      ]);
+      
+      if (!stopExecutionFlag) {
+        const out = getPythonOutput();
+        outputArea.textContent = out;
+        outputArea.classList.remove('output-error');
+        
+        const endTime = performance.now();
+        const execTime = (endTime - startTime).toFixed(2);
+        executionTime.textContent = `${execTime} ms`;
+        executionStatus.textContent = 'Selesai';
+        executionStatus.style.color = '#00aa66';
+        
+        showToast('Eksekusi selesai');
+      }
+    } catch (err) {
+      if (err.message === 'Eksekusi dihentikan oleh pengguna') {
+        outputArea.textContent = 'Eksekusi dihentikan oleh pengguna';
+        executionTime.textContent = '';
+      } else {
+        outputArea.textContent = 'Error:\n' + err.message;
+        outputArea.classList.add('output-error');
+        executionTime.textContent = 'error';
+        showToast('Runtime error', true);
+      }
+    } finally {
+      executeBtn.disabled = false;
+      stopBtn.disabled = true;
+      isRunning = false;
+      stopExecutionFlag = false;
+      statusDot.className = 'status-dot ready';
+      if (!executionStatus.textContent.includes('Selesai') && !executionStatus.textContent.includes('Dihentikan')) {
+        executionStatus.textContent = '';
+      }
+    }
+  };
+
+  window.copyCode = function() {
+    const code = codeArea.textContent;
+    navigator.clipboard.writeText(code).then(() => showToast('Kode disalin')).catch(() => showToast('Gagal menyalin', true));
+  };
+
+  // Inisialisasi Blockly
+  window.onload = function() {
+    if (!Blockly) {
+      codeArea.textContent = 'Blockly error';
+      return;
+    }
+
+    // Pengaturan Warna Blocks - Bright theme only
+    brightTheme = Blockly.Theme.defineTheme('brightTheme', {
+      'base': Blockly.Themes.Classic,
+      'blockStyles': {
+        'text_blocks': { 'colourPrimary': '#FFB347' },
+        'logic_blocks': { 'colourPrimary': '#5CADFF' },
+        'math_blocks': { 'colourPrimary': '#FFE55C' },
+        'variable_blocks': { 'colourPrimary': '#FFB347' },
+        'loop_blocks': { 'colourPrimary': '#FF8C69' },
+        'procedure_blocks': { 'colourPrimary': '#7B9EFF' },
+        'list_blocks': { 'colourPrimary': '#AA80FF' },
+      },
+      'componentStyles': {
+        'workspaceBackgroundColour': '#f8f9ff',
+        'toolboxBackgroundColour': '#f0f3fa',
+        'toolboxForegroundColour': '#2c3e50',
+        'flyoutBackgroundColour': '#ffffff',
+        'scrollbarColour': '#5a8cff',
+        'scrollbarOpacity': 0.5
+      }
+    });
+
+    // Inject Blockly dengan tema bright
+    workspace = Blockly.inject('blocklyDiv', {
+      toolbox: document.getElementById('toolbox'),
+      theme: brightTheme,
+      trashcan: true,
+      scrollbars: true,
+      zoom: { controls: true, wheel: true }
+    });
+
+    function updateCodeView() {
+      if (currentMblockTab === 'python' && currentMode === 'block') {
+        const code = Blockly.Python.workspaceToCode(workspace);
+        codeArea.textContent = code || '# (kosong)';
+        updateCodeLineCount();
+      }
+      updateStats();
+    }
+    workspace.addChangeListener(updateCodeView);
+
+    // Listener untuk manual code editing
+    codeArea.addEventListener('input', function() {
+      if (currentMblockTab === 'python' && currentMode === 'block') {
+        // Jika di mode block tapi user mengedit, switch ke manual
+        setMode('manual');
+      }
+      updateCodeLineCount();
+    });
+
+    // Muat halaman awal
+    loadPage(currentPage);
+
+    // Event listener navigasi
+    prevBtn.addEventListener('click', goToPrevPage);
+    nextBtn.addEventListener('click', goToNextPage);
+
+    // Setup function tab
+    const searchInput = document.getElementById('functionSearch');
+    searchInput.addEventListener('input', (e) => {
+      const activeCategory = document.querySelector('.function-category.active');
+      renderTopicList(e.target.value, activeCategory.dataset.category);
+    });
+
+    // Setup category clicks
+    document.querySelectorAll('.function-category').forEach(cat => {
+      cat.addEventListener('click', (e) => {
+        document.querySelectorAll('.function-category').forEach(c => c.classList.remove('active'));
+        cat.classList.add('active');
+        const searchInput = document.getElementById('functionSearch');
+        renderTopicList(searchInput.value, cat.dataset.category);
+      });
+    });
+
+    // Render initial topic list
+    renderTopicList('', 'all');
+
+    // Set initial mode
+    setMode('block');
+
+    initPyodide();
+  };
+</script>
+
+</body>
+</html>
