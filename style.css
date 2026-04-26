@@ -999,3 +999,43 @@ body.bright-mode .function-item.expanded .function-params,
 body.bright-mode .function-item.expanded .function-returns {
     color: #2c3e50;
 }
+
+/* ===== RESPONSIVE (HP / MOBILE) ===== */
+@media (max-width: 768px) {
+    
+    body {
+        padding: 8px;
+    }
+
+    .main-layout {
+        flex-direction: column; /* dari samping jadi atas-bawah */
+    }
+
+    .workspace-section {
+        flex: none;
+        width: 100%;
+        height: 300px; /* bisa kamu atur */
+    }
+
+    .python-panel {
+        flex: none;
+        width: 100%;
+        min-width: 100%;
+    }
+
+    /* biar panel code & output tetap enak */
+    .split-panel {
+        flex-direction: column;
+    }
+
+    /* font diperkecil biar muat */
+    #codeArea,
+    #outputArea {
+        font-size: 12px;
+    }
+
+    /* tombol biar wrap */
+    .action-buttons {
+        flex-wrap: wrap;
+    }
+}
