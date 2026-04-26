@@ -1021,6 +1021,7 @@ body.bright-mode .function-item.expanded .function-returns {
         flex: none;
         width: 100%;
         min-width: 100%;
+        min-height: 500px;
     }
 
     /* biar panel code & output tetap enak */
