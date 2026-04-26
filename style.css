@@ -999,282 +999,551 @@ body.bright-mode .function-item.expanded .function-params,
 body.bright-mode .function-item.expanded .function-returns {
     color: #2c3e50;
 }
-/* ===== PERBAIKAN UNTUK ANDROID & LAYAR KECIL ===== */
 
-/* Pastikan semua konten tetap terlihat dan tidak terpotong */
+/* ===== RESPONSIVE MEDIA QUERIES ===== */
+
+/* Tablet landscape / Laptop kecil */
+@media (max-width: 1200px) {
+    body {
+        padding: 10px;
+    }
+    .main-layout {
+        gap: 10px;
+    }
+}
+
+/* Tablet portrait */
+@media (max-width: 992px) {
+    .main-layout {
+        flex-direction: column;
+    }
+    .workspace-section {
+        flex: 1;
+        min-height: 40vh;
+    }
+    .python-panel {
+        flex: 1;
+        min-height: 50vh;
+    }
+    #blocklyDiv {
+        min-height: 300px;
+    }
+}
+
+/* Mobile landscape */
 @media (max-width: 768px) {
-    /* Fix untuk output yang hilang */
+    body {
+        padding: 8px;
+    }
+    
+    .workspace-header {
+        flex-wrap: wrap;
+        padding: 6px 10px;
+        gap: 8px;
+    }
+    
+    .workspace-header .page-info {
+        margin-left: 0;
+        margin-top: 5px;
+    }
+    
+    .workspace-header .page-info button {
+        padding: 2px 6px;
+    }
+    
+    .mode-selector {
+        flex-wrap: wrap;
+        padding: 8px 12px;
+        gap: 8px;
+    }
+    
+    .mode-toggle {
+        width: 180px;
+    }
+    
+    .mode-slider.manual {
+        transform: translateX(84px);
+    }
+    
+    .action-buttons {
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px;
+    }
+    
+    .mblock-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    
+    .function-categories {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        padding: 8px 12px;
+        /* Smooth scrolling untuk Android */
+        scroll-behavior: smooth;
+        scrollbar-width: thin;
+    }
+    
+    /* Styling scrollbar untuk Android */
+    .function-categories::-webkit-scrollbar {
+        height: 4px;
+    }
+    
+    .function-categories::-webkit-scrollbar-track {
+        background: #e0e0e0;
+        border-radius: 10px;
+    }
+    
+    .function-categories::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+    }
+    
+    .function-categories::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    
+    .function-category {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    .panel-label {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .clear-btn {
+        margin-left: 0;
+        margin-top: 5px;
+    }
+    
+    .status-footer {
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 10px;
+        padding-bottom: env(safe-area-inset-bottom, 10px);
+    }
+    
     .split-panel {
-        flex-direction: column !important;
-        min-height: 0 !important;
+        flex-direction: column;
     }
     
-    .code-panel, 
-    .output-panel {
-        flex: 1 !important;
-        min-height: 180px !important;
-        max-height: none !important;
+    .code-panel, .output-panel {
+        min-height: 200px;
+    }
+}
+
+/* Mobile portrait - Khusus Android dengan penyesuaian button default */
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+        /* Tambahan padding bottom untuk Android navbar */
+        padding-bottom: max(5px, env(safe-area-inset-bottom));
     }
     
-    #outputArea {
-        min-height: 100px;
+    .workspace-header {
+        font-size: 11px;
+    }
+    
+    .workspace-header i {
+        font-size: 12px;
+    }
+    
+    .mblock-tab {
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+    
+    .mode-option {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+    
+    .mode-toggle {
+        width: 160px;
+    }
+    
+    .mode-slider {
+        height: 24px;
+    }
+    
+    .mode-slider.manual {
+        transform: translateX(74px);
+    }
+    
+    .function-name {
+        font-size: 13px;
+        flex-wrap: wrap;
+    }
+    
+    .function-desc {
+        font-size: 11px;
+    }
+    
+    #codeArea, #outputArea {
+        font-size: 11px;
+        padding: 8px;
+    }
+    
+    .insert-btn {
+        padding: 4px 10px;
+        font-size: 10px;
+    }
+    
+    .toast {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        font-size: 12px;
+        /* Hindari bentrok dengan navbar Android */
+        margin-bottom: env(safe-area-inset-bottom, 0);
+    }
+    
+    .topic-stats {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .function-syntax {
+        font-size: 11px;
+        overflow-x: auto;
+    }
+    
+    .function-example pre {
+        font-size: 10px;
+        padding: 8px;
+    }
+    
+    /* Tambahan margin bottom untuk konten yang bisa discroll */
+    .function-list {
+        scroll-margin-bottom: 20px;
+        padding-bottom: env(safe-area-inset-bottom, 10px);
+    }
+}
+
+/* Layar sangat kecil (max 360px) - Optimasi Android */
+@media (max-width: 360px) {
+    body {
+        padding-bottom: env(safe-area-inset-bottom, 10px);
+    }
+    
+    .mblock-tab {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+    
+    .mode-option {
+        padding: 3px 6px;
+        font-size: 9px;
+    }
+    
+    .mode-toggle {
+        width: 140px;
+    }
+    
+    .mode-slider.manual {
+        transform: translateX(64px);
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .mblock-btn {
+        width: 100%;
+    }
+    
+    .function-item {
+        padding: 8px 10px;
+    }
+    
+    /* Scroll indicator untuk Android */
+    .function-categories::after {
+        content: '';
+        position: sticky;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 20px;
+        background: linear-gradient(to right, transparent, rgba(0,0,0,0.05));
+        pointer-events: none;
+    }
+}
+
+/* Layar lebar (Desktop HD+) */
+@media (min-width: 1600px) {
+    .workspace-section {
+        flex: 1.5;
+    }
+    .python-panel {
+        flex: 1;
+    }
+    #codeArea, #outputArea {
+        font-size: 14px;
+    }
+    .function-name {
+        font-size: 16px;
+    }
+    .workspace-header {
+        font-size: 14px;
+    }
+}
+
+/* Landscape mode untuk mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+    body {
+        padding: 5px;
+    }
+    
+    .workspace-section {
+        min-height: 85vh;
+    }
+    
+    .python-panel {
+        min-height: 85vh;
+    }
+    
+    .function-list {
         max-height: 200px;
-        overflow-y: auto !important;
+        /* Enable scrolling dengan smooth */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
     }
     
-    #codeArea {
+    .code-panel, .output-panel {
         min-height: 150px;
-        max-height: 300px;
-        overflow-y: auto !important;
     }
-    
-    /* Tombol di Android agar mudah diklik */
+}
+
+/* Touch-friendly improvements untuk mobile & Android */
+@media (max-width: 768px) {
     button, 
     .mblock-tab,
     .function-category,
     .function-item,
-    .mode-option,
-    .sync-btn,
-    .clear-btn,
-    .insert-btn {
-        min-height: 44px !important; /* Ukuran minimal untuk touch Android */
-        min-width: 44px !important;
-    }
-    
-    /* Khusus untuk tombol kecil */
-    .clear-btn, .sync-btn {
-        min-height: 36px !important;
-        padding: 8px 12px !important;
-    }
-    
-    /* Page info button */
-    .workspace-header .page-info button {
-        min-height: 32px !important;
-        min-width: 32px !important;
-        padding: 6px 10px !important;
-    }
-    
-    /* Mode toggle lebih besar di Android */
-    .mode-toggle {
-        height: 40px !important;
-    }
-    
     .mode-option {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 5px !important;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        /* Mencegah highlight biru default Android */
+        outline: none;
     }
     
-    .mode-slider {
-        height: 34px !important;
-        top: 3px !important;
+    /* Minimal touch target size (Android best practice) */
+    button, 
+    .mblock-tab,
+    .function-category,
+    .mode-option,
+    .insert-btn,
+    .clear-btn {
+        min-height: 44px;
+        min-width: 44px;
     }
     
-    /* Scroll area yang lebih baik */
-    .function-list {
-        max-height: 40vh !important;
-        overflow-y: auto !important;
+    button:active,
+    .mblock-tab:active,
+    .function-category:active {
+        opacity: 0.7;
+        transform: scale(0.98);
+        transition: transform 0.05s ease;
+    }
+    
+    /* Scrollbar styling untuk semua elemen scrollable */
+    .function-list::-webkit-scrollbar,
+    .function-categories::-webkit-scrollbar,
+    .code-panel::-webkit-scrollbar,
+    .output-panel::-webkit-scrollbar {
+        height: 4px;
+        width: 4px;
+    }
+    
+    .function-list::-webkit-scrollbar-track,
+    .function-categories::-webkit-scrollbar-track,
+    .code-panel::-webkit-scrollbar-track,
+    .output-panel::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .function-list::-webkit-scrollbar-thumb,
+    .function-categories::-webkit-scrollbar-thumb,
+    .code-panel::-webkit-scrollbar-thumb,
+    .output-panel::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 10px;
+    }
+    
+    .function-list::-webkit-scrollbar-thumb:hover,
+    .function-categories::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    
+    /* Better touch scrolling untuk semua kontainer */
+    .function-list,
+    .code-panel,
+    .output-panel,
+    .function-categories {
         -webkit-overflow-scrolling: touch;
+        overflow-y: auto;
+        overflow-x: auto;
+        scroll-behavior: smooth;
     }
     
-    /* Pastikan Blockly workspace tetap bisa discroll */
-    #blocklyDiv {
-        min-height: 250px !important;
-        overflow: hidden !important;
-    }
-    
-    .blocklyScrollSurface {
-        touch-action: pan-x pan-y !important;
-    }
-    
-    /* Toolbox tetap terlihat */
-    .blocklyToolboxDiv {
-        width: 50px !important;
-        min-width: 50px !important;
+    /* Smooth scroll untuk keseluruhan halaman di Android */
+    html {
+        scroll-behavior: smooth;
     }
 }
 
-/* Untuk Android dengan resolusi sangat kecil */
-@media (max-width: 480px) {
-    /* Stack semua tombol action */
-    .action-buttons {
-        flex-direction: row !important;
-        flex-wrap: wrap !important;
-    }
-    
-    .mblock-btn {
-        min-width: 80px !important;
-        padding: 8px 10px !important;
-    }
-    
-    /* Output area lebih besar */
-    .output-panel {
-        min-height: 150px !important;
-    }
-    
-    #outputArea {
-        font-size: 10px !important;
-        padding: 6px !important;
-    }
-    
-    /* Header lebih hemat ruang */
-    .workspace-header {
-        padding: 4px 8px !important;
-    }
-    
-    .panel-header {
-        padding: 6px 10px !important;
-    }
-    
-    /* Tabs lebih hemat */
-    .mblock-tab {
-        padding: 6px 10px !important;
-        font-size: 10px !important;
-    }
-    
-    /* Status footer lebih ringkas */
-    .status-footer {
-        font-size: 9px !important;
-        padding: 3px 8px !important;
-        gap: 8px !important;
-    }
-}
-
-/* Mode landscape di Android */
-@media (max-width: 900px) and (orientation: landscape) {
+/* Print styles */
+@media print {
     body {
-        padding: 5px !important;
+        padding: 0;
+        height: auto;
+        overflow: visible;
     }
-    
     .main-layout {
-        flex-direction: row !important;
-        gap: 8px !important;
+        display: block;
     }
-    
-    .workspace-section {
-        flex: 1.5 !important;
-        min-height: auto !important;
-    }
-    
+    .workspace-section,
     .python-panel {
-        flex: 1 !important;
-        min-height: auto !important;
+        break-inside: avoid;
     }
-    
-    .split-panel {
-        flex-direction: row !important;
-    }
-    
-    .code-panel, .output-panel {
-        min-height: 250px !important;
-    }
-    
-    .code-panel {
-        border-right: 1px solid #d0d9e8 !important;
-        border-bottom: none !important;
-    }
-    
-    .function-list {
-        max-height: 150px !important;
-    }
-    
-    /* Tombol tetap accessible */
-    button, .mblock-tab, .function-category {
-        min-height: 40px !important;
+    .action-buttons,
+    .mode-selector,
+    .mblock-tabs {
+        display: none;
     }
 }
 
-/* Fix untuk Blockly di Android WebView */
+/* Container query untuk component-level responsiveness */
+@container (max-width: 500px) {
+    .function-item {
+        padding: 8px;
+    }
+    .function-name {
+        font-size: 12px;
+    }
+}
+
+/* Smooth transitions untuk resize */
+.main-layout,
+.workspace-section,
+.python-panel,
+.code-panel,
+.output-panel {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Fix untuk Blockly di mobile dan Android */
 @media (max-width: 768px) {
-    .blocklyWidgetDiv {
-        position: fixed !important;
-        z-index: 9999 !important;
+    .blocklyToolboxDiv {
+        width: 45px !important;
     }
     
-    .blocklyBubbleCanvas {
-        max-width: 90vw !important;
+    .blocklyTreeRow {
+        margin: 2px 0;
+        min-height: 44px; /* Touch target */
     }
     
+    .blocklyTreeLabel {
+        display: none;
+    }
+    
+    .blocklyTreeIcon {
+        margin: 0 auto;
+    }
+    
+    /* Tooltip tetap terbaca */
     .blocklyTooltipDiv {
-        position: fixed !important;
-        bottom: auto !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: auto !important;
-        max-width: 80vw !important;
-        white-space: normal !important;
-        word-wrap: break-word !important;
-        z-index: 10000 !important;
-    }
-}
-
-/* Pastikan konten tidak overflow horizontal */
-@media (max-width: 768px) {
-    body, .main-layout, .workspace-section, .python-panel {
-        overflow-x: hidden !important;
-        max-width: 100vw !important;
-    }
-    
-    .function-example pre,
-    .function-syntax {
-        overflow-x: auto !important;
-        white-space: pre-wrap !important;
-        word-break: break-all !important;
-    }
-}
-
-/* Toast notification agar tidak terpotong di Android */
-.toast {
-    position: fixed !important;
-    bottom: 20px !important;
-    left: 50% !important;
-    right: auto !important;
-    transform: translateX(-50%) !important;
-    width: auto !important;
-    max-width: 90vw !important;
-    white-space: normal !important;
-    text-align: center !important;
-    z-index: 10000 !important;
-}
-
-@media (max-width: 480px) {
-    .toast {
-        bottom: 10px !important;
-        padding: 8px 16px !important;
         font-size: 11px !important;
-    }
-}
-
-/* Fix untuk scroll di semua panel */
-.code-panel, 
-.output-panel,
-.function-list,
-#codeArea,
-#outputArea {
-    -webkit-overflow-scrolling: touch !important;
-    overflow-y: auto !important;
-}
-
-/* Pastikan user bisa scroll content */
-body {
-    overflow: hidden !important;
-}
-
-.main-layout {
-    overflow: auto !important;
-}
-
-/* Alternative untuk devices yang tidak support flex */
-@supports (-webkit-touch-callout: none) {
-    /* iOS Safari specific */
-    .split-panel {
-        height: auto !important;
-        min-height: 400px !important;
+        max-width: 200px !important;
     }
     
-    .code-panel, .output-panel {
-        min-height: 200px !important;
+    /* Blockly canvas touch-friendly */
+    .blocklyDraggable {
+        touch-action: none;
+    }
+}
+
+/* Flexbox fallback untuk browser lama */
+@supports not (display: flex) {
+    .main-layout {
+        display: block;
+    }
+    .workspace-section,
+    .python-panel {
+        width: 100%;
+        margin-bottom: 15px;
+    }
+}
+
+/* ===== FITUR SCROLLING KHUSUS ANDROID ===== */
+
+/* Peningkatan scroll untuk Android */
+@media (pointer: coarse) and (max-width: 768px) {
+    /* Scroll snapping untuk horizontal scroll */
+    .function-categories {
+        scroll-snap-type: x mandatory;
+        scroll-padding: 0 10px;
+    }
+    
+    .function-category {
+        scroll-snap-align: start;
+    }
+    
+    /* Visual scroll indicator */
+    .function-categories-container {
+        position: relative;
+    }
+    
+    .function-categories-container::after {
+        content: '👉';
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.6;
+        font-size: 20px;
+        pointer-events: none;
+        animation: bounce 1s infinite;
+    }
+    
+    @keyframes bounce {
+        0%, 100% { transform: translateY(-50%) translateX(0); }
+        50% { transform: translateY(-50%) translateX(5px); }
+    }
+    
+    /* Hilangkan indicator setelah scroll */
+    .function-categories:active::after,
+    .function-categories:focus::after {
+        opacity: 0;
+    }
+    
+    /* Overscroll behavior yang lebih baik */
+    .function-list, 
+    .code-panel, 
+    .output-panel {
+        overscroll-behavior: contain;
+    }
+}
+
+/* Safe area untuk Android dengan notch/gesture navbar */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    body {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    .status-footer {
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    }
+    
+    .toast {
+        bottom: calc(10px + env(safe-area-inset-bottom));
     }
 }
